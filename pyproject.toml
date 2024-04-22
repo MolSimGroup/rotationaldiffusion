@@ -1,0 +1,16 @@
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'rdiffusion'
+version = '0.6'
+authors = [{name = 'Simon Holtbruegge', email = 'simon.holtbruegge@rub.de'}]
+description = 'Extract the rotational diffusion tensor and main rotation axes of an object from simulations.'
+readme = 'README.md'
+dependencies = [
+    'numpy'
+]
+
+[tool.setuptools.packages.find]
+include = ['rdiffusion*']
