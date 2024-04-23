@@ -15,4 +15,4 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ['rdiffusion*']
+include = ['rotationaldiffusion*']
