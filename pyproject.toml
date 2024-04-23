@@ -1,0 +1,18 @@
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'rotationaldiffusion'
+version = '0.7'
+description = 'Extract rotational diffusion tensors of molecules from Molecular Dynamics trajectories.'
+license = {file = 'LICENSE'}
+authors = [{name = 'Simon Holtbruegge', email = 'simon.holtbruegge@rub.de'}]
+maintainers = [{name = 'Simon Holtbruegge', email = 'simon.holtbruegge@rub.de'}]
+readme = 'README.md'
+dependencies = [
+    'numpy'
+]
+
+[tool.setuptools.packages.find]
+include = ['rotationaldiffusion*']
