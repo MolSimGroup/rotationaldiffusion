@@ -296,32 +296,6 @@ def convert2D_and_PAF(params):
     return D, PAF
 
 
-class LeastSquaresFit(object):
-
-    def __init__(self, lag_times, Q_data, model='anisotropic', tol=1e-10,
-                 maxiter=1000):
-        self.lag_times = lag_times
-        self.data = Q_data
-        self.model = model
-        return
-
-    def _initial_guess(self):
-        larger_125 = np.any(np.abs(self.data) > 0.2, axis=(0, 1))
-        ndx = np.argmax(larger_125) if larger_125.any() else -1
-        diff_coeffs_init, _ = instantaneous_tensors(self.lag_times[ndx],
-                                                    self.data[ndx])
-
-        match self.model:
-            case 'anisotropic':
-                self.D_init = diff_coeffs_init
-            case 'semi-isotropic':
-                self.D_init = diff_coeffs_init[(0, 2),]
-            case 'isotropic':
-                self.D_init = [np.mean(diff_coeffs_init)]
-        self.params_init = list(np.log10(self.D_init)) + [1, 0, 0, 0]
-        return self.D_init
-
-
 def least_squares_fit(lag_times, Q_data, model='anisotropic',
                       tol=1e-10, maxiter=1000):
     # Initial guess of diffusion coefficients.
