@@ -296,52 +296,49 @@ def convert2D_and_PAF(params):
     return D, PAF
 
 
-def least_squares_fit(lag_times, Q_data, model='anisotropic',
-                      tol=1e-10, maxiter=1000):
+def guess_initial_params_4fitting(lag_times, Q_data, model='anisotropic'):
     # Initial guess of diffusion coefficients.
     larger_125 = np.any(np.abs(np.abs(Q_data)) > 0.2, axis=(0, 1))
     ndx = np.argmax(larger_125) if larger_125.any() else -1
     diff_coeffs_init, _ = instantaneous_tensors(lag_times[ndx], Q_data[ndx])
 
     # Define initial parameter set.
-    # (And the indices of diffusion and quaternion parameters in that set).
     match model:
         case 'anisotropic':
             diff_params_init = diff_coeffs_init
-            diff_params_indices = (0, 1, 2)
         case 'semi-isotropic':
             diff_params_init = diff_coeffs_init[(0, 2),]
-            diff_params_indices = (0, 0, 1)
         case 'isotropic':
             diff_params_init = [np.mean(diff_coeffs_init)]
-            diff_params_indices = (0, 0, 0)
         case _:
-            raise KeyError(f"Model must be one of anisotropic, semi-isotropic, "
-                           f"or isotropic. Is: {model}.")
-    diff_params_init_converted = list(np.log10(diff_params_init))
-    PAF_params_init = [1, 0, 0, 0]
-    # PAF_params_start_ndx = diff_params_indices[-1] + 1
-    params_init = diff_params_init_converted + PAF_params_init
+            raise KeyError(f"Model must be one of anisotropic, semi-isotropic,"
+                           f" or isotropic. Is: {model}.")
 
-    # Define error function as mean of squared residuals.
-    def chi2(params, lag_times, Q_data):
-        # diffusion_coeffs = np.float_power(10, params[diff_params_indices,])
-        # PAF = qops.quat2rotmat(params[PAF_params_start_ndx:])
-        diffusion_coeffs, PAF = convert2D_and_PAF(params)
-        model = construct_Q_model(lag_times, diffusion_coeffs)
-        data = np.einsum('im,tmn,jn->tij', PAF, Q_data, PAF)
-        residuals = (model - data) ** 2
-        return np.mean(residuals[:, (0, 1, 2, 0, 0, 1), (0, 1, 2, 1, 2, 2)])
+    return list(np.log10(diff_params_init)) + [1, 0, 0, 0]
 
-    # Define function for local optimization.
-    def optimize(params_init, constraints):
-        res = scipy.optimize.minimize(chi2, params_init, tol=tol,
-                                      args=(lag_times, Q_data),
-                                      constraints=constraints,
-                                      method='trust-constr',
-                                      options={'disp': False,
-                                               'maxiter': maxiter})
-        return res
+
+def chi2(params, lag_times, Q_data):
+    diffusion_coeffs, PAF = convert2D_and_PAF(params)
+    model = construct_Q_model(lag_times, diffusion_coeffs)
+    data = np.einsum('im,tmn,jn->tij', PAF, Q_data, PAF)
+    residuals = (model - data) ** 2
+    return np.mean(residuals[:, (0, 1, 2, 0, 0, 1), (0, 1, 2, 1, 2, 2)])
+
+
+def optimize(params_init, constraints, lag_times, Q_data, tol=1e-10,
+             maxiter=1000):
+    res = scipy.optimize.minimize(chi2, params_init, tol=tol,
+                                  args=(lag_times, Q_data),
+                                  constraints=constraints,
+                                  method='trust-constr',
+                                  options={'disp': False,
+                                           'maxiter': maxiter})
+    return res
+
+
+def least_squares_fit(lag_times, Q_data, model='anisotropic',
+                      tol=1e-10, maxiter=1000):
+    params_init = guess_initial_params_4fitting(lag_times, Q_data, model)
 
     # Constrain PAF-quaternion to norm 1 (to make it a rotational quaternion).
     def unit_quaternion_constraint(params):
@@ -350,19 +347,22 @@ def least_squares_fit(lag_times, Q_data, model='anisotropic',
 
     # Main optimization step.
     if model != 'semi-isotropic':
-        res = optimize(params_init, constraints)
+        res = optimize(params_init, constraints, lag_times, Q_data, tol=tol,
+                       maxiter=maxiter)
         res.shape = 'triaxial' if model == 'anisotropic' else 'spherical'
     else:
         # Fit prolate model.
         constraints_prolate = constraints + [{'type': 'ineq',
                                               'fun': lambda x: x[1]-x[0]}]
-        res_prolate = optimize(params_init, constraints_prolate)
+        res_prolate = optimize(params_init, constraints_prolate, lag_times,
+                               Q_data, tol=tol, maxiter=maxiter)
 
         # Fit oblate model.
         constraints_oblate = constraints + [{'type': 'ineq',
                                               'fun': lambda x: x[0]-x[1]}]
         params_init[0], params_init[1] = params_init[1], params_init[0]
-        res_oblate = optimize(params_init, constraints_oblate)
+        res_oblate = optimize(params_init, constraints_oblate, lag_times,
+                              Q_data, tol=tol, maxiter=maxiter)
 
         # Select best fit.
         if res_prolate.fun < res_oblate.fun:
@@ -377,8 +377,11 @@ def least_squares_fit(lag_times, Q_data, model='anisotropic',
     res.model = model
 
     # Convert parameters back to D and PAF.
-    res.D = np.float_power(10, res.x[diff_params_indices,])
-    res._PAF = qops.quat2rotmat(res.x[-4:])
+    # res.D = np.float_power(10, res.x[diff_params_indices,])
+    # res._PAF = qops.quat2rotmat(res.x[-4:])
+    D, PAF = convert2D_and_PAF(res.x)
+    res.D = D
+    res._PAF = PAF
 
     # Sort D (and PAF accordingly, only anisotropic model).
     if model == 'anisotropic':
