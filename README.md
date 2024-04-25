@@ -10,6 +10,7 @@ Extract the rotational diffusion tensor and principal axis of a molecule from a 
 - [ ] align using MDAnalysis
 - [ ] command-line interface
 - [ ] publish to PyPI
+- [ ] add parallelization
 
 # Author
 This package was written by Simon Holtbruegge. Feel free to contact me in case you experience any issues or need assistance with using the code ([simon.holtbruegge@rub.de](mailto:simon.holtbruegge@rub.de))
