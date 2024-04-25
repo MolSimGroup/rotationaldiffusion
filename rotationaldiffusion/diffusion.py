@@ -15,6 +15,11 @@ from .parser import parse_args
 from . import quaternions as qops
 from tqdm.auto import tqdm
 
+try:
+    from pydiffusion import quaternionsimulation as qsim
+except ImportError:
+    qsim = None
+
 """
 Quaternions describe rotations in an axis-angle representation. A
 quaternion consists of one real part and three imaginary parts, so
@@ -405,5 +410,64 @@ def least_squares_fit(lag_times, Q_data, model='anisotropic',
     return res
 
 
-def postprocess_optimized_result(res):
-    pass
+def get_error(value):
+    if f"{value:.1e}"[0] == '1' and f"{value:.1e}"[2] < '5':
+        return float(f"{value:.1e}")
+    return float(f"{value:.0e}")
+
+
+def compute_uncertainty(D, nrepeats, sim_time_max, lag_time_step, lag_time_max,
+                        sim_time_step=1e-10, model='anisotropic'):
+    if not qsim:
+        print('Warning: Computing uncertainties of diffusion tensors requires'
+              'the "pydiffusion" package, which is missing. Skipping ...')
+        return
+
+    niter = int(sim_time_max/sim_time_step)
+    stop = int(lag_time_max/sim_time_step/lag_time_step)
+
+    i, new_diff_coeffs, new_chi2 = 1, [], []
+    all_stds_converged = False
+    while not all_stds_converged:
+        while True:
+            quat_trajs = np.array([qsim.run(D, niter, sim_time_step)
+                                   for j in range(nrepeats)])
+            Q_data = extract_Q_data(quat_trajs, step=lag_time_step, stop=stop,
+                                    silent=True, njobs=1)
+            Q_data_mean = np.mean(Q_data, axis=0)
+            lag_times = arange_lag_times(Q_data_mean,
+                                         sim_time_step*lag_time_step)
+            fit = least_squares_fit(lag_times, Q_data_mean, model=model)
+
+            if fit.success:
+                new_diff_coeffs.append(fit.D)
+                new_chi2.append(fit.fun)
+                i += 1
+                break
+            print('FAILED')
+
+        if not i%10:
+            stds_converged, errors, width_to_mean_ratios = [], [], []
+            for diff_coeff in np.array(new_diff_coeffs).T:
+                std = scipy.stats.bootstrap((diff_coeff,), np.std,
+                                            confidence_level=0.9,
+                                            n_resamples=100)
+                std_mean = np.average(std.confidence_interval)
+                std_diff = np.ptp(std.confidence_interval)
+                error_low = get_error(std.confidence_interval.low)
+                error_high = get_error(std.confidence_interval.high)
+
+                stds_converged.append(std_diff/std_mean < 0.1
+                                      or error_low == error_high)
+                errors.append(get_error(std_mean))
+                width_to_mean_ratios.append(std_diff/std_mean*100)
+
+            means = np.mean(new_diff_coeffs, axis=0)
+            print(f"Iteration {i}: {means[0]:.1e} {means[1]:.1e} {means[2]:.1e}"
+                  f", {errors[0]:.1e} {errors[1]:.1e} {errors[2]:.1e}. "
+                  f"(Largest interval width:) "
+                  f"{np.max(width_to_mean_ratios):.0f}%. "
+                  f"Chi2: {np.mean(new_chi2):.2e} {np.std(new_chi2):.1e}.")
+            if np.all(stds_converged):
+                break
+    return errors
