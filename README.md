@@ -1,3 +1,7 @@
+Parts of the code are inspired by the two packages
+- [pydiffusion](https://github.com/bio-phys/pydiffusion)
+- [MethylRelax](https://github.com/fahoffmann/MethylRelax)
+
 # Purpose
 Extract the rotational diffusion tensor and principal axis of a molecule from a Molecular Dynamics trajectory. Assumes ideal rigid-body Brownian motion.
 
