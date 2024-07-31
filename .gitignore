@@ -2,3 +2,4 @@ __pycache__
 OLD*
 *.egg-info
 .idea
+docs/build
