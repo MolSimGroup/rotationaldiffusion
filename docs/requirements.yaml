@@ -1,0 +1,10 @@
+name: rotationaldiffusion-docs
+channels:
+  - conda-forge
+
+dependencies:
+  - python
+  - pip
+  - mdanalysis-sphinx-theme >=1.0.1
+  - sphinxcontrib-bibtex
+  - sphinx

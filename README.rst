@@ -23,11 +23,13 @@ Planned features
 - [ ] command-line interface
 - [ ] tutorial
 - [ ] better documentation
-- [ ] automated documentation
-- [ ] host documentation
+- [X] automated documentation
+- [ ] online documentation
 - [ ] add doctests
+- [ ] custom sphinx template
 - [X] use codecov to check how much code is tested => Pycharm IDE uses coverage
 - [ ] publish to PyPI
+- [ ] publish to conda-forge (or similar)
 - [̶ ]̶ ̶a̶d̶d̶ ̶p̶a̶r̶a̶l̶l̶e̶l̶i̶z̶a̶t̶i̶o̶n̶
 
 
