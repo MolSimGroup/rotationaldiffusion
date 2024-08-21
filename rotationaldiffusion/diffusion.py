@@ -385,7 +385,7 @@ def least_squares_fit(lag_times, Q_data, model='anisotropic',
     # res.D = np.float_power(10, res.x[diff_params_indices,])
     # res._PAF = qops.quat2rotmat(res.x[-4:])
     D, PAF = convert2D_and_PAF(res.x)
-    res.D = D
+    res.D = np.array(D)
     res._PAF = PAF
 
     # Sort D (and PAF accordingly, only anisotropic model).
@@ -417,7 +417,8 @@ def get_error(value):
 
 
 def compute_uncertainty(D, nrepeats, sim_time_max, lag_time_step, lag_time_max,
-                        sim_time_step=1e-10, model='anisotropic'):
+                        sim_time_step=1e-10, model='anisotropic',
+                        lag_time_min=0):
     if not qsim:
         print('Warning: Computing uncertainties of diffusion tensors requires'
               'the "pydiffusion" package, which is missing. Skipping ...')
@@ -426,7 +427,7 @@ def compute_uncertainty(D, nrepeats, sim_time_max, lag_time_step, lag_time_max,
     niter = int(sim_time_max/sim_time_step)
     stop = int(lag_time_max/sim_time_step/lag_time_step)
 
-    i, new_diff_coeffs, new_chi2 = 1, [], []
+    i, new_diff_coeffs, new_PAF_angles, new_chi2 = 1, [], [], []
     all_stds_converged = False
     while not all_stds_converged:
         while True:
@@ -437,11 +438,21 @@ def compute_uncertainty(D, nrepeats, sim_time_max, lag_time_step, lag_time_max,
             Q_data_mean = np.mean(Q_data, axis=0)
             lag_times = arange_lag_times(Q_data_mean,
                                          sim_time_step*lag_time_step)
-            fit = least_squares_fit(lag_times, Q_data_mean, model=model)
+            fit = least_squares_fit(lag_times[lag_time_min:-1],
+                                    Q_data_mean[lag_time_min:-1], model=model)
 
             if fit.success:
                 new_diff_coeffs.append(fit.D)
                 new_chi2.append(fit.fun)
+                angles = []
+                for axis in fit._PAF:
+                    angles_tmp = []
+                    for ref in np.eye(3):
+                        cos = np.abs(np.dot(axis, ref))
+                        angle = np.rad2deg(np.arccos(cos))
+                        angles_tmp.append(angle)
+                    angles.append(np.min(angles_tmp))
+                new_PAF_angles.append(angles)
                 i += 1
                 break
             print('FAILED')
@@ -467,7 +478,10 @@ def compute_uncertainty(D, nrepeats, sim_time_max, lag_time_step, lag_time_max,
                   f", {errors[0]:.1e} {errors[1]:.1e} {errors[2]:.1e}. "
                   f"(Largest interval width:) "
                   f"{np.max(width_to_mean_ratios):.0f}%. "
-                  f"Chi2: {np.mean(new_chi2):.2e} {np.std(new_chi2):.1e}.")
+                  f"Chi2: {np.mean(new_chi2):.2e} {np.std(new_chi2):.1e}. "
+                  f"PAF angles: {np.mean(new_PAF_angles, axis=0)[0]:.2f}, "
+                  f"{np.mean(new_PAF_angles, axis=0)[1]:.2f}, "
+                  f"{np.mean(new_PAF_angles, axis=0)[2]:.2f}.")
             if np.all(stds_converged):
                 break
-    return errors
+    return errors, new_PAF_angles

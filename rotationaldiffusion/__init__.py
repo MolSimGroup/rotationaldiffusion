@@ -4,4 +4,4 @@ from .diffusion import (load_gmx_rotmat_files, extract_Q_data,
                         construct_Q_model_var, least_squares_fit,
                         convert2D_and_PAF, compute_uncertainty)
 
-from . import quaternions, parser
+from . import quaternions, parser, mdaapi

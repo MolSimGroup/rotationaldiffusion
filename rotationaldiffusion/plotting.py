@@ -30,7 +30,7 @@ def plot_Q(fig, axs, lag_times, Q, labels=True, xlabel='$\\tau$ / ns',
 
 def plot_instantaneous_D_PAF(lag_times, D, PAF, figsize=(8, 5), sharex=True,
                              constrained_layout=True, xlabel='$\\tau$ / ns',
-                             ylabel0='D / ns$^{-1}$', ylabel1='cos $\\alpha$',
+                             ylabel0='D / ns$^{-1}$', ylabel1='$\\alpha$',
                              **kwargs):
     fig, axs = plt.subplots(2, 1, figsize=figsize, sharex=sharex,
                             constrained_layout=constrained_layout, **kwargs)
@@ -38,9 +38,19 @@ def plot_instantaneous_D_PAF(lag_times, D, PAF, figsize=(8, 5), sharex=True,
     axs[0].set_ylabel(ylabel0)
     axs[1].set_ylabel(ylabel1)
 
+
     for i, axis in enumerate('xyz'):
-        axs[0].plot(lag_times, D[..., i], label=f"{axis}-axis")
+        ref = [0, 0, 0]
+        ref[i] = 1
+        axs[0].plot(lag_times, D[..., i], label=f"$D_{axis}$")
+        cos = np.abs(np.dot(PAF[:, i], ref))
         cos = np.abs(np.dot(PAF[:, i], PAF[0, i]))
-        axs[1].plot(lag_times, cos)
+        angle = np.rad2deg(np.arccos(cos))
+        axs[1].plot(lag_times, angle, label=f"$\\alpha_{axis}$")
+
     axs[0].legend(loc='lower center', ncol=3)
+    axs[1].legend(loc='upper center', ncol=3)
+
+    axs[0].set_ylim(bottom=0)
+    axs[1].set_ylim([-5, 90])
     return fig, axs
