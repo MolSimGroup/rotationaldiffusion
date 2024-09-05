@@ -7,14 +7,8 @@ import sys
 import pytest
 import numpy as np
 import rotationaldiffusion as rd
-
 import MDAnalysis as mda
-# from MDAnalysis.core.topology import Topology
-# from MDAnalysis.core.topologyattrs import (Atomnames, Masses, Resids,
-#                                            Resnames, Segids)
 from MDAnalysis.exceptions import SelectionError
-# from MDAnalysis.lib.transformations import rotation_matrix
-
 from numpy.testing import (assert_equal, assert_array_equal,
                            assert_array_almost_equal)
 sys.path.insert(0, os.path.abspath(".."))
@@ -71,9 +65,9 @@ class TestOrientations:
         assert_array_almost_equal(ana.results.orientations[0], np.eye(3))
         assert_array_almost_equal(
             ana.results.orientations[-1], np.array(
-                [[-0.2459,  0.9692,  0.0106],
-                 [-0.897 , -0.2317,  0.3764],
-                 [ 0.3673,  0.083 ,  0.9264]]), decimal=4)
+                [[-0.2459, 0.9692, 0.0106],
+                 [-0.897, -0.2317, 0.3764],
+                 [0.3673, 0.083, 0.9264]]), decimal=4)
 
     def test_mobile2(self, mobile):
         mobile.trajectory[-1]  # Set trajectory to last frame.
@@ -82,9 +76,9 @@ class TestOrientations:
         assert_array_almost_equal(ana.results.orientations[-1], np.eye(3))
         assert_array_almost_equal(
             ana.results.orientations[0], np.array(
-                [[-0.2459,  0.9692,  0.0106],
-                 [-0.897 , -0.2317,  0.3764],
-                 [ 0.3673,  0.083 ,  0.9264]]).T, decimal=4)
+                [[-0.2459, 0.9692, 0.0106],
+                 [-0.8970, -0.2317, 0.3764],
+                 [0.3673, 0.0830, 0.9264]]).T, decimal=4)
 
     def test_broken_pbc(self, mobile):
         ana = rd.mdaapi.Orientations(mobile, unwrap=False, verbose=False).run()
@@ -93,8 +87,8 @@ class TestOrientations:
         assert_array_almost_equal(
             ana.results.orientations[-1], np.array(
                 [[-0.0604, -0.8743, -0.4815],
-                 [ 0.6933, -0.3838,  0.6098],
-                 [-0.7180, -0.2970,  0.6294]]), decimal=4)
+                 [0.6933, -0.3838, 0.6098],
+                 [-0.7180, -0.2970, 0.6294]]), decimal=4)
 
     def test_reference(self, mobile, reference):
         ana = rd.mdaapi.Orientations(
@@ -103,9 +97,9 @@ class TestOrientations:
         assert_array_almost_equal(ana.results.orientations[-1], np.eye(3))
         assert_array_almost_equal(
             ana.results.orientations[0], np.array(
-                [[-0.2459,  0.9692,  0.0106],
-                 [-0.897 , -0.2317,  0.3764],
-                 [ 0.3673,  0.083 ,  0.9264]]).T, decimal=4)
+                [[-0.2459, 0.9692, 0.0106],
+                 [-0.897, -0.2317, 0.3764],
+                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
 
     def test_atomgroup(self, mobile, reference):
         ana = rd.mdaapi.Orientations(
@@ -114,9 +108,9 @@ class TestOrientations:
         assert_array_almost_equal(ana.results.orientations[-1], np.eye(3))
         assert_array_almost_equal(
             ana.results.orientations[0], np.array(
-                [[-0.2459,  0.9692,  0.0106],
-                 [-0.897 , -0.2317,  0.3764],
-                 [ 0.3673,  0.083 ,  0.9264]]).T, decimal=4)
+                [[-0.2459, 0.9692, 0.0106],
+                 [-0.897, -0.2317, 0.3764],
+                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
 
     def test_in_memory(self, mobile, reference):
         mobile.transfer_to_memory()
@@ -127,9 +121,9 @@ class TestOrientations:
         assert_array_almost_equal(ana.results.orientations[-1], np.eye(3))
         assert_array_almost_equal(
             ana.results.orientations[0], np.array(
-                [[-0.2459,  0.9692,  0.0106],
-                 [-0.897 , -0.2317,  0.3764],
-                 [ 0.3673,  0.083 ,  0.9264]]).T, decimal=4)
+                [[-0.2459, 0.9692, 0.0106],
+                 [-0.897, -0.2317, 0.3764],
+                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
 
     @pytest.mark.parametrize('selection', [
         'name CA or name C or name N',
@@ -143,9 +137,9 @@ class TestOrientations:
         assert_array_almost_equal(ana.results.orientations[-1], np.eye(3))
         assert_array_almost_equal(
             ana.results.orientations[0], np.array(
-                [[-0.2217, -0.9064,  0.3595],
-                 [ 0.975 , -0.2016,  0.093 ],
-                 [-0.0118,  0.3711,  0.9285]]), decimal=4)
+                [[-0.2217, -0.9064, 0.3595],
+                 [0.975, -0.2016, 0.093],
+                 [-0.0118, 0.3711, 0.9285]]), decimal=4)
 
     def test_select_missing_residue_error(self, mobile, reference):
         with pytest.raises(SelectionError):
@@ -166,9 +160,9 @@ class TestOrientations:
         assert_array_almost_equal(ana.results.orientations[-1], np.eye(3))
         assert_array_almost_equal(
             ana.results.orientations[0], np.array(
-                [[-0.2387, -0.8998,  0.3653],
-                 [ 0.9711, -0.2233,  0.0844],
-                 [ 0.0056,  0.3749,  0.927 ]]), decimal=4)
+                [[-0.2387, -0.8998, 0.3653],
+                 [0.9711, -0.2233, 0.0844],
+                 [0.0056, 0.3749, 0.927]]), decimal=4)
 
     def test_custom_weighting(self, mobile, reference):
         # Put weight 1 on backbone atoms, 0 on rest.
@@ -182,47 +176,104 @@ class TestOrientations:
         assert_array_almost_equal(ana.results.orientations[-1], np.eye(3))
         assert_array_almost_equal(
             ana.results.orientations[0], np.array(
-                [[-0.2217, -0.9064,  0.3595],
-                 [ 0.975 , -0.2016,  0.093 ],
-                 [-0.0118,  0.3711,  0.9285]]), decimal=4)
+                [[-0.2217, -0.9064, 0.3595],
+                 [0.975, -0.2016, 0.093],
+                 [-0.0118, 0.3711, 0.9285]]), decimal=4)
 
 
 class TestGetOrientations:
-    def test_universe(self):
-        pass
-    # @pytest.mark.parametrize('mapping', ['zip', 'product'])
-    # def test_universe(self, mobile):#, mapping):
-    #     res = rd.mdaapi.get_orientations(mobile,
-    #                                      # mapping=mapping,
-    #                                      verbose=False)
-    #     assert_equal(len(res), 1)
-    #     assert_array_almost_equal(*np.broadcast_arrays(
-    #         res, rotmat(0)))
-    #
-    # # @pytest.mark.parametrize('mapping', ['zip', 'product'])
-    # def test_reference(self, mobile, reference):#, mapping):
-    #     res = rd.mdaapi.get_orientations(mobile, reference=reference,
-    #                                      # mapping=mapping,
-    #                                      verbose=False)
-    #     assert_equal(len(res), 1)
-    #     assert_array_almost_equal(*np.broadcast_arrays(
-    #         res, rotmat(-np.pi/4)))
-    #
-    #
-    # # @pytest.mark.parametrize('mapping', ['zip', 'product'])
-    # def test_atomgroup(self, mobile, reference):#, mapping):
-    #     res = rd.mdaapi.get_orientations(mobile.atoms,
-    #                                      reference=reference.atoms,
-    #                                      # mapping=mapping,
-    #                                      verbose=False)
-    #     assert_equal(len(res), 1)
-    #     assert_array_almost_equal(*np.broadcast_arrays(
-    #         res, rotmat(-np.pi/4)))
-    #
-    # # @pytest.mark.parametrize('mapping', ['zip', 'product'])
-    # def test_universes(self, mobile):#, mapping):
-    #     res = rd.mdaapi.get_orientations(mobile, mobile,#, mapping=mapping,
-    #                                      verbose=False)
-    #     assert_equal(len(res), 2)
-    #     assert_array_almost_equal(*np.broadcast_arrays(
-    #         res, rotmat(0)))
+    def test_universe(self, mobile):
+        ana = rd.mdaapi.get_orientations(mobile)
+        assert_equal(ana.shape, (1, 1, mobile.trajectory.n_frames, 3, 3))
+        assert_array_almost_equal(
+            ana[0, 0, -1], np.array(
+                [[-0.2459, 0.9692, 0.0106],
+                 [-0.897, -0.2317, 0.3764],
+                 [0.3673, 0.083, 0.9264]]), decimal=4)
+
+    def test_reference(self, mobile, reference):
+        ana = rd.mdaapi.get_orientations(mobile, reference)
+        assert_equal(ana.shape, (1, 1, mobile.trajectory.n_frames, 3, 3))
+        assert_array_almost_equal(
+            ana[0, 0, 0], np.array(
+                [[-0.2459, 0.9692, 0.0106],
+                 [-0.897, -0.2317, 0.3764],
+                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
+
+    def test_atomgroup(self, mobile, reference):
+        ana = rd.mdaapi.get_orientations(mobile.atoms, reference.atoms)
+        assert_equal(ana.shape, (1, 1, mobile.trajectory.n_frames, 3, 3))
+        assert_array_almost_equal(
+            ana[0, 0, 0], np.array(
+                [[-0.2459, 0.9692, 0.0106],
+                 [-0.897, -0.2317, 0.3764],
+                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
+
+    def test_select(self, mobile, reference):
+        ana = rd.mdaapi.get_orientations(mobile, reference,
+                                         select='name CA or name C or name N')
+        assert_equal(ana.shape, (1, 1, mobile.trajectory.n_frames, 3, 3))
+        assert_array_almost_equal(
+            ana[0, 0, 0], np.array(
+                [[-0.2217, -0.9064, 0.3595],
+                 [0.975, -0.2016, 0.093],
+                 [-0.0118, 0.3711, 0.9285]]), decimal=4)
+
+    def test_in_memory(self, mobile, reference):
+        assert not isinstance(mobile.trajectory,
+                              mda.coordinates.memory.MemoryReader)
+        ana = rd.mdaapi.get_orientations(mobile, reference, in_memory=True)
+        assert isinstance(mobile.trajectory,
+                          mda.coordinates.memory.MemoryReader)
+        assert_equal(ana.shape, (1, 1, mobile.trajectory.n_frames, 3, 3))
+        assert_array_almost_equal(
+            ana[0, 0, 0], np.array(
+                [[-0.2459, 0.9692, 0.0106],
+                 [-0.897, -0.2317, 0.3764],
+                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
+
+    def test_multiple_trajectories(self, mobile, reference):
+        ana = rd.mdaapi.get_orientations([mobile, mobile], reference)
+        assert_equal(ana.shape, (2, 1, mobile.trajectory.n_frames, 3, 3))
+        assert_array_almost_equal(
+            ana[0, 0, 0], np.array(
+                [[-0.2459, 0.9692, 0.0106],
+                 [-0.897, -0.2317, 0.3764],
+                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
+        assert_array_almost_equal(
+            ana[1, 0, 0], np.array(
+                [[-0.2459, 0.9692, 0.0106],
+                 [-0.897, -0.2317, 0.3764],
+                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
+
+    def test_multiple_selections(self, mobile, reference):
+        ana = rd.mdaapi.get_orientations(
+            mobile, reference, select=['all', 'name CA or name C or name N'])
+        assert_equal(ana.shape, (1, 2, mobile.trajectory.n_frames, 3, 3))
+        assert_array_almost_equal(
+            ana[0, 0, 0], np.array(
+                [[-0.2459, 0.9692, 0.0106],
+                 [-0.897, -0.2317, 0.3764],
+                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
+        assert_array_almost_equal(
+            ana[0, 1, 0], np.array(
+                [[-0.2217, -0.9064, 0.3595],
+                 [0.975, -0.2016, 0.093],
+                 [-0.0118, 0.3711, 0.9285]]), decimal=4)
+
+    def test_multiple_trajectories_and_selections(self, mobile, reference):
+        ana = rd.mdaapi.get_orientations(
+            3*[mobile], reference,
+            select=['all', 'name CA or name C or name N'])
+        assert_equal(ana.shape, (3, 2, mobile.trajectory.n_frames, 3, 3))
+        assert_array_almost_equal(ana[0, 0, -1], np.eye(3))
+        assert_array_almost_equal(
+            ana[1, 0, 0], np.array(
+                [[-0.2459, 0.9692, 0.0106],
+                 [-0.897, -0.2317, 0.3764],
+                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
+        assert_array_almost_equal(
+            ana[2, 1, 0], np.array(
+                [[-0.2217, -0.9064, 0.3595],
+                 [0.975, -0.2016, 0.093],
+                 [-0.0118, 0.3711, 0.9285]]), decimal=4)
