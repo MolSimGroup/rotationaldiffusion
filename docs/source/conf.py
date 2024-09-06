@@ -21,47 +21,40 @@ author = "Simon Holtbruegge"
 # The short X.Y version
 version = "0.8"
 # The full version, including alpha/beta/rc tags
-release = "0.8"
+release = "0.8-dev0"
 
 
 # -- General configuration ---------------------------------------------------
 
 #needs_sphinx = "6.2.1"
 extensions = [
-    "sphinx.ext.autodoc",
-#    "sphinx.ext.mathjax",
-#    "sphinx.ext.viewcode",
-    "sphinx.ext.napoleon",
+    "numpydoc",
     "sphinx.ext.intersphinx",
-    "sphinx.ext.extlinks",
+    "sphinx.ext.autosummary",
     "sphinxcontrib.bibtex",
-#    "mdanalysis_sphinx_theme",
 ]
-
-autosummary_generate = True
-# This skips generating an autodoc of the test module
-# when using the autosummary directive that is included
-# by default in api.rst
 
 templates_path = ["_templates"]
 source_suffix = ".rst"
 master_doc = "index"
 language = "en"
 exclude_patterns = ["build", "Thumbs.db", ".DS_Store"]
-pygments_style = "default"
+# pygments_style = "default"
 toc_object_entries = False
+
 
 # -- Options for HTML output -------------------------------------------------
 
 #html_theme = "mdanalysis_sphinx_theme"
 #html_theme_options = {"mda_official": False}
 #html_theme = "sphinx_rtd_theme"
-#html_theme = "alabaster"
-html_theme = "furo"
+# html_theme = "alabaster"
+#html_theme = "furo"
+html_theme = "sphinx_book_theme"
 
 
-html_logo = "_static/logo/placeholder_logo.png"
-html_favicon = "_static/logo/placeholder_favicon.svg"
+#html_logo = "_static/logo/placeholder_logo.png"
+#html_favicon = "_static/logo/placeholder_favicon.svg"
 
 html_static_path = ["_static"]
 
@@ -124,40 +117,23 @@ texinfo_documents = [
 
 
 # -- Extension configuration -------------------------------------------------
-
-# autodoc extension
-autoclass_content = "both"
-autodoc_class_signature = "mixed"
-autodoc_default_options = {
-    'members': True,
-    'inherited-members': True,
-    'show-inheritance': True
+# numpydoc extension
+numpydoc_xref_param_type = True
+numpydoc_xref_aliases = {
+    'AtomGroup': 'MDAnalysis.core.groups.AtomGroup',
+    'Universe': 'MDAnalysis.core.universe.Universe',
 }
-autodoc_mock_imports = ['rotationaldiffusion.tests']
+numpydoc_xref_ignore = {'optional', 'default', 'shape', 'of', 'thereof',
+                        'N', 'S', 'T', 'n_frames'}
 
-# napoleon extension
-napoleon_google_docstring = False
-napoleon_numpy_docstring = True
-napoleon_use_param = False
-napoleon_use_ivar = False
-napoleon_use_rtype = False
-napoleon_preprocess_types = True
-napoleon_type_aliases = {
-    "AtomGroup": ":class:`AtomGroup <MDAnalysis.core.groups.AtomGroup>`",
-    "Universe": ":class:`Universe <MDAnalysis.core.universe.Universe>`",
-    "ndarray": ":class:`ndarray <numpy.ndarray>`"
-}
+# autosummary extension
+autosummary_generate = True
 
 # intersphinx extension
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "mdanalysis": ("https://docs.mdanalysis.org/stable/", None),
     "numpy": ('https://numpy.org/doc/stable/', None),
-}
-
-# extlinks extension
-extlinks = {
-    "MDAnalysis": ('https://www.mdanalysis.org/%s', 'MDAnalysis %s')
 }
 
 # sphinxcontrib-bibtex extension

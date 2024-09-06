@@ -1,17 +1,10 @@
 #! /usr/bin/env python
-import argparse
 import functools
 import multiprocessing as mp
-import pickle as pkl
-from collections import defaultdict
-from copy import copy
-from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import scipy
 
-from .parser import parse_args
 from . import quaternions as qops
 from tqdm.auto import tqdm
 
@@ -31,45 +24,6 @@ Im(q) = x*i + y*j + z*k = cos(phi/2) * (u1*i + u2*j + u3*j), where
 
 # TODO: Reimplement option to use commandline.
 # TODO: Implement option to align using MDAnalysis.
-def load_gmx_rotmat_files(files, start=None, stop=None, step=None):
-    """
-    Load output of 'gmx rotmat' as quaternions.
-
-    Load the rotational matrices obtained via least-squares fitting using 'gmx rotmat'
-    into numpy arrays and convert to their quaternion representation. Each quaternion
-    describes the least-squares rotation from a trajectory frame onto the reference.
-
-    Parameters
-    ----------
-    files: list
-        Paths to 'gmx rotmat' output files.
-    start, stop: int (optional)
-        Index of first and last frame to load.
-    step: int (optional)
-        Load every STEP-th frame.
-
-    Returns
-    -------
-    quats: (len(files), N, 4) ndarray
-        Quaternions in order (w, x, y, z).
-    timestep: np.float64
-        Timestep in input data.
-    """
-    # TODO: add unit test.
-    # TODO: move to proper IO module.
-    stop = stop + 1 if stop else stop
-    time, rotmats = [], []
-    for file in tqdm(files, desc='Loading files'):
-        data = np.loadtxt(file, comments=['#', '@'])[start:stop:step]
-        time.append(data[:, 0])
-        rotmats.append(data[:, 1:].reshape(-1, 3, 3))
-    time, quats = np.array(time), qops.rotmat2quat(rotmats)
-    timestep = time[0, 1] - time[0, 0]
-    assert (np.allclose(time[:, 1:] - time[:, :-1], timestep))
-    print(
-        f"{quats.shape[1]} rotational quaternions were imported from each of the {quats.shape[0]} file(s), "
-        f"separated by a unitless timestep of {timestep}.")
-    return quats, timestep
 
 
 def _extract_Q_data_i(quats, inverted_quats, ndx, do_variance=False):
@@ -485,3 +439,15 @@ def compute_uncertainty(D, nrepeats, sim_time_max, lag_time_step, lag_time_max,
             if np.all(stds_converged):
                 break
     return errors, new_PAF_angles
+
+
+def run_all():
+    # Load universe.
+    # (Compute average structure).
+    # RMSD-fit trajectory to selection and frame.
+    # Compute quaternion covariance matrix.
+    # (Compute instantaneous tensors).
+    # (Plot intermediate results).
+    # Least-squares fit.
+    # (Plot and/or report results).
+    return

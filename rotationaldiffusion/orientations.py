@@ -3,12 +3,13 @@
 """
 import numpy as np
 import MDAnalysis as mda
-from MDAnalysis import transformations as trans, AtomGroup
+from MDAnalysis import AtomGroup
 from MDAnalysis.analysis import rms, align
 from MDAnalysis.lib import util
 from MDAnalysis.analysis.base import AnalysisBase
-from MDAnalysis.coordinates.memory import MemoryReader
 
+
+# TODO: add a function to compute the iteratively averaged structure.
 
 def load_universes(topology, *coordinates, **kwargs):
     """Load (one or) several trajectories of one system into separate
@@ -241,10 +242,11 @@ def get_orientations(universes, reference=None, select='all', in_memory=False,
 
     Warnings
     --------
-    It is highly recommended to pass an explicit reference
-    configuration. Otherwise, the returned orientations of different
-    trajectories or selections are likely incomparable, since they
-    consider different reference orientations.
+    If the reference configuration is not passed explicitly but
+    constructed on-the-fly, the obtained orientations of different
+    trajectories or selections are likely incomparable, since a new
+    reference configuration is constructed for each trajectory or
+    selection.
     """
     if isinstance(select, str):
         select = [select]
@@ -264,13 +266,41 @@ def get_orientations(universes, reference=None, select='all', in_memory=False,
     return orientations
 
 
-def run_all():
-    # Load universe.
-    # (Compute average structure).
-    # RMSD-fit trajectory to selection and frame.
-    # Compute quaternion covariance matrix.
-    # (Compute instantaneous tensors).
-    # (Plot intermediate results).
-    # Least-squares fit.
-    # (Plot and/or report results).
-    return
+def load_orientations(*files, start=None, stop=None, step=None):
+    """
+    Load orientations obtained using `gmx rotmat` from disk.
+
+    Several files can be loaded at once by passing the path to each file
+    as a separate argument. All files must contain the same number of
+    orientations.
+
+    The `start`, `stop`, and `step` arguments can be used to load only
+    parts of each file using `numpy slicing <https://numpy.org/doc/
+    stable/user/basics.indexing.html#slicing-and-striding>`_.
+
+    Parameters
+    ----------
+    files: str
+        Paths to the 'gmx rotmat' output files. Each path should be a
+        separate argument.
+    start, stop : int, optional
+        Index of first and last frame to load.
+    step : int, optional
+        Number of orientations to skip between each loaded orientation.
+
+    Returns
+    -------
+    orientations : ndarray, shape (N, T, 3, 3)
+        Orientation matrices loaded from `N` `files`. `T` is the number
+        of orientations loaded from each file.
+    time : ndarray, shape (N, T)
+        Time information corresponding to the matrices in
+        `orientations`.
+    """
+    time, orientations = [], []
+    for file in files:
+        data = np.loadtxt(file, comments=['#', '@'])[start:stop:step]
+        time.append(data[:, 0])
+        orientations.append(data[:, 1:].reshape(-1, 3, 3))
+    orientations, time = np.array(orientations), np.array(time)
+    return orientations, time
