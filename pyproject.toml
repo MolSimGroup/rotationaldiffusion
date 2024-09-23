@@ -11,7 +11,11 @@ authors = [{name = 'Simon Holtbruegge', email = 'simon.holtbruegge@rub.de'}]
 maintainers = [{name = 'Simon Holtbruegge', email = 'simon.holtbruegge@rub.de'}]
 readme = 'README.md'
 dependencies = [
-    'numpy'
+#    'python',
+    'MDAnalysis>=2.7',
+#	'numpy',
+#    'scipy',
+#    'matplotlib'
 ]
 
 [project.optional-dependencies]

@@ -23,10 +23,10 @@ Im(q) = x*i + y*j + z*k = cos(phi/2) * (u1*i + u2*j + u3*j), where
 
 
 # TODO: Reimplement option to use commandline.
-# TODO: Implement option to align using MDAnalysis.
 
 
-def _extract_Q_data_i(quats, inverted_quats, ndx, do_variance=False):
+def _correlate_i(quats, inverted_quats, ndx, do_variance=False):
+    """Compute the covariance matrix `Q` at one point in time."""
     q1 = quats[..., :-ndx, :]
     q2 = inverted_quats[..., ndx:, :]
     q_corr = qops.multiply_quats(q1, q2)
@@ -36,6 +36,36 @@ def _extract_Q_data_i(quats, inverted_quats, ndx, do_variance=False):
         var = Q_not_averaged.var(axis=-3)
         return Q_not_averaged.mean(axis=-3), var
     return Q_not_averaged.mean(axis=-3)
+
+
+def correlate(orientations):
+    """ Compute the quaternion covariance matrix `Q` containing six
+    rotational correlation functions.
+
+    The `orientations` may be passed either as an array of rotational
+    matrices or of quaternions. In the latter case, the scalar part
+    must be passed first.
+
+    Parameters
+    ----------
+    orientations : ndarray
+        The orientations, represented either as rotational matrices
+        (shape `(..., 3, 3)`), or as quaternions (shape `(..., 4)`).
+
+    Returns
+    -------
+    Q : ndarray, shape (..., N, 3, 3)
+        The quaternion covariance matrix computed at `N` points in time.
+    Q_var : ndarray, shape (..., N, 3, 3), optional
+        The variance of `Q`.
+
+    Notes
+    -----
+
+    """
+    if orientations.shape[:-2] == (3, 3):
+        orientations = qops.rotmat2quat(orientations)
+    return 
 
 
 def extract_Q_data(quats, do_variance=False, stop=None, step=1, njobs=mp.cpu_count(),
@@ -72,7 +102,7 @@ def extract_Q_data(quats, do_variance=False, stop=None, step=1, njobs=mp.cpu_cou
             if not chunksize:
                 chunksize, extra = divmod(len(indices), len(pool._pool) * 4)
                 chunksize = min(chunksize + 1 if extra else chunksize, 100)
-            func = functools.partial(_extract_Q_data_i, quats, inverted_quats,
+            func = functools.partial(_correlate_i, quats, inverted_quats,
                                      do_variance=do_variance)
             for i, res in enumerate(pool.imap(func,
                                               tqdm(indices, disable=silent),
@@ -84,11 +114,11 @@ def extract_Q_data(quats, do_variance=False, stop=None, step=1, njobs=mp.cpu_cou
     else:
         for i, ndx in enumerate(tqdm(indices, disable=silent)):
             if do_variance:
-                Q[i], var[i] = _extract_Q_data_i(quats, inverted_quats, ndx,
-                                                 do_variance=do_variance)
+                Q[i], var[i] = _correlate_i(quats, inverted_quats, ndx,
+                                            do_variance=do_variance)
             else:
-                Q[i] = _extract_Q_data_i(quats, inverted_quats, ndx,
-                                         do_variance=do_variance)
+                Q[i] = _correlate_i(quats, inverted_quats, ndx,
+                                    do_variance=do_variance)
 
     if do_variance:
         return np.moveaxis(Q, 0, -3), np.moveaxis(var, 0, -3)

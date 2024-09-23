@@ -297,10 +297,10 @@ def load_orientations(*files, start=None, stop=None, step=None):
         Time information corresponding to the matrices in
         `orientations`.
     """
-    time, orientations = [], []
+    orientations, time = [], []
     for file in files:
         data = np.loadtxt(file, comments=['#', '@'])[start:stop:step]
-        time.append(data[:, 0])
         orientations.append(data[:, 1:].reshape(-1, 3, 3))
+        time.append(data[:, 0])
     orientations, time = np.array(orientations), np.array(time)
     return orientations, time
