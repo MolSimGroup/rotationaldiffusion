@@ -284,7 +284,7 @@ def load_orientations(*files, start=None, stop=None, step=None):
         Paths to the 'gmx rotmat' output files. Each path should be a
         separate argument.
     start, stop : int, optional
-        Index of first and last frame to load.
+        Index of first and last orientation to load.
     step : int, optional
         Number of orientations to skip between each loaded orientation.
 

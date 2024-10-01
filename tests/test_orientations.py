@@ -292,9 +292,36 @@ class TestLoadOrientations:
                 [[-0.2387, -0.8998, 0.3653],
                  [0.9711, -0.2233, 0.0844],
                  [0.0056, 0.3749, 0.9270]]), decimal=4)
-        assert_array_almost_equal(time, np.array([[0.99e6, 1e6]]))
+        assert_array_almost_equal(time, [np.linspace(99e4, 100e4, 11)])
+
+    def test_many_files(self, gmx_rotmat_file):
+        orientations, time = rd.orientations.load_orientations(
+            gmx_rotmat_file, gmx_rotmat_file, gmx_rotmat_file)
+        assert_array_almost_equal(orientations[0, -1], np.eye(3))
+        assert_array_almost_equal(
+            orientations[2, 0], np.array(
+                [[-0.2387, -0.8998, 0.3653],
+                 [0.9711, -0.2233, 0.0844],
+                 [0.0056, 0.3749, 0.9270]]), decimal=4)
+        assert_array_almost_equal(time, 3*[np.linspace(99e4, 100e4, 11)])
 
     def test_start_stop_step(self, gmx_rotmat_file):
-        raise NotImplementedError('A test for the start, stop, and step'
-                                  ' arguments is not implemented, yet.')
-
+        orientations, time = rd.orientations.load_orientations(
+            gmx_rotmat_file, gmx_rotmat_file, gmx_rotmat_file, start=2,
+            stop=7, step=2)
+        assert_array_almost_equal(
+            orientations[0, 0], np.array(
+                [[0.8633, 0.4643, -0.1974],
+                 [-0.0525, 0.4718, 0.8801],
+                 [0.5018, -0.7494, 0.4317]]), decimal=4)
+        assert_array_almost_equal(
+            orientations[1, 1], np.array(
+                [[-0.4254, 0.8620, -0.2754],
+                 [-0.4653, -0.4694, -0.7503],
+                 [-0.7761, -0.1910, 0.6008]]), decimal=4)
+        assert_array_almost_equal(
+            orientations[2, 2], np.array(
+                [[-0.6465, -0.3166, -0.6940],
+                 [0.6757, 0.1845, -0.7136],
+                 [0.3540, -0.9304, 0.0947]]), decimal=4)
+        assert_array_almost_equal(time, 3*[[992e3, 994e3, 996e3]])
