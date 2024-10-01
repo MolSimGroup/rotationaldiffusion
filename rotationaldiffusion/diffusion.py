@@ -21,7 +21,6 @@ Re(q) = w = sin(phi/2), whereas the rotation axis is given by
 Im(q) = x*i + y*j + z*k = cos(phi/2) * (u1*i + u2*j + u3*j), where
 """
 
-# TODO: Use fast external library for quaternion operations.
 # TODO: Reimplement option to use commandline.
 
 
@@ -88,7 +87,6 @@ def correlate(orientations, stop=None, step=1, do_variance=False,
     Q = np.zeros((indices.size,) + orientations.shape[:-2] + (3, 3))
     var = np.zeros(Q.shape) if do_variance else None
 
-    # TODO (correlate): Optimize speed and memory requirements.
     # TODO (correlate): Parallelize the correlation function.
     # TODO (correlate): Allow returning the full 4x4 covariance matrix.
     # TODO (correlate): Allow returning the correlated angles.

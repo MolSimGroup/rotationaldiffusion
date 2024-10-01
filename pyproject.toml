@@ -12,7 +12,7 @@ maintainers = [{name = 'Simon Holtbruegge', email = 'simon.holtbruegge@rub.de'}]
 readme = 'README.md'
 dependencies = [
 #    'python',
-    'MDAnalysis>=2.7',
+#    'MDAnalysis>=2.7',
 #	'numpy',
 #    'scipy',
 #    'matplotlib'
@@ -20,10 +20,10 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "MDAnalysisTests>=2.0.0",
-    "pytest>=6.0",
-    "pytest-xdist>=2.5",
-    "pytest-cov>=3.0"
+#    "MDAnalysisTests>=2.0.0",
+#    "pytest>=6.0",
+#    "pytest-xdist>=2.5",
+#    "pytest-cov>=3.0"
 ]
 
 [tool.setuptools.packages.find]
