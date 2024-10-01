@@ -1,4 +1,4 @@
-"""Rotational diffusion
+"""Orientations
 ====================
 """
 import numpy as np
@@ -9,7 +9,7 @@ from MDAnalysis.lib import util
 from MDAnalysis.analysis.base import AnalysisBase
 
 
-# TODO: add a function to compute the iteratively averaged structure.
+# TODO: Add a function to compute the iteratively averaged structure.
 
 def load_universes(topology, *coordinates, **kwargs):
     """Load (one or) several trajectories of one system into separate
@@ -62,6 +62,7 @@ def load_universes(topology, *coordinates, **kwargs):
 
 
 class Orientations(AnalysisBase):
+    # TODO: Parallelize the `Orientations` analysis class.
     r"""Determines the orientation of an
     :class:`AtomGroup <MDAnalysis.core.groups.AtomGroup>` along the
     trajectory.

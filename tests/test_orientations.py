@@ -1,5 +1,5 @@
 """
-Unit and regression test for the mdaapi module.
+Unit tests for the ``orientations`` module.
 """
 import os
 import sys
@@ -12,6 +12,9 @@ from MDAnalysis.exceptions import SelectionError
 from numpy.testing import (assert_equal, assert_array_equal,
                            assert_array_almost_equal)
 sys.path.insert(0, os.path.abspath(".."))
+
+
+# TODO: Add regression test. (Do GROMACS and MDAnalysis results match?)
 
 
 @pytest.fixture
