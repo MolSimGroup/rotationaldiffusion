@@ -7,8 +7,7 @@ def invert_quat(quats):
 
 
 def rotmat2quat(rotmats):
-    """
-    Convert 3D rotation matrices to their quaternion representation.
+    """Convert 3D rotation matrices to their quaternion representation.
 
     Implementation of the Bar-Itzhack algorithm [1, 2], which determines
     the optimal unit quaternion corresponding to the orthogonal
@@ -79,11 +78,11 @@ def quat2rotmat(quats):
     quats = np.moveaxis(quats, -1, 0)
     w, x, y, z = quats
 
-    rotmats = np.moveaxis([
+    rotmats = np.moveaxis(np.array([
         [1 - 2*y**2 - 2*z**2, 2*x*y - 2*z*w, 2*x*z + 2*y*w],
         [2*x*y + 2*z*w, 1 - 2*x**2 - 2*z**2, 2*y*z - 2*x*w],
         [2*x*z - 2*y*w, 2*y*z + 2*x*w, 1 - 2*x**2 - 2*y**2]
-    ], [0, 1], [-2, -1])
+    ]), [0, 1], [-2, -1])
     return rotmats
 
 

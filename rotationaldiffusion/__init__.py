@@ -6,4 +6,6 @@ from .diffusion import (extract_Q_data,
 from .orientations import (load_universes, Orientations,
                            get_orientations, load_orientations)
 
-from . import quaternions, parser, orientations
+from .align import iterative_average
+
+from . import quaternions, parser, orientations, plotting

@@ -88,8 +88,6 @@ def correlate(orientations, stop=None, step=1, do_variance=False,
     var = np.zeros(Q.shape) if do_variance else None
 
     # TODO (correlate): Parallelize the correlation function.
-    # TODO (correlate): Allow returning the full 4x4 covariance matrix.
-    # TODO (correlate): Allow returning the correlated angles.
     for i, ndx in enumerate(tqdm(indices, disable=not verbose)):
         if do_variance:
             Q[i], var[i] = _correlate_i(orientations, orientations_inv, ndx,
@@ -274,9 +272,9 @@ def construct_Q_model_var(lag_time, diffusion_coeffs, PAF=np.eye(3),
         qi2_qj2_rotated = qi2_qj2
 
     if precomputed_Q_model is not None:
-        var = qi2_qj2_rotated - precomputed_Q_model ** 2
+        var = np.moveaxis(qi2_qj2_rotated, -1, 0) - precomputed_Q_model ** 2
     else:
-        var = qi2_qj2_rotated - construct_Q_model(lag_time, diffusion_coeffs, PAF) ** 2
+        var = np.moveaxis(qi2_qj2_rotated, -1, 0) - construct_Q_model(lag_time, diffusion_coeffs, PAF) ** 2
     return var
 
 
@@ -361,7 +359,7 @@ def optimize(params_init, constraints, lag_times, Q_data, tol=1e-10,
 
 
 def least_squares_fit(lag_times, Q_data, model='anisotropic',
-                      tol=1e-10, maxiter=1000):
+                      tol=1e-10, maxiter=1000, tmp=None):
     params_init = guess_initial_params_4fitting(lag_times, Q_data, model)
 
     # Constrain PAF-quaternion to norm 1 (to make it a rotational quaternion).
@@ -393,6 +391,13 @@ def least_squares_fit(lag_times, Q_data, model='anisotropic',
             res = res_prolate
             res.shape = 'prolate'
         else:
+            res = res_oblate
+            res.shape = 'oblate'
+
+        if tmp == 'prolate':
+            res = res_prolate
+            res.shape = 'prolate'
+        elif tmp == 'oblate':
             res = res_oblate
             res.shape = 'oblate'
 
@@ -447,13 +452,15 @@ def compute_uncertainty(D, nrepeats, sim_time_max, lag_time_step, lag_time_max,
     stop = int(lag_time_max/sim_time_step/lag_time_step)
 
     i, new_diff_coeffs, new_PAF_angles, new_chi2 = 1, [], [], []
+    new_PAFs = [] # HERE
     all_stds_converged = False
-    while not all_stds_converged:
+    # while not all_stds_converged:
+    for i in tqdm(range(1000)):
         while True:
             quat_trajs = np.array([qsim.run(D, niter, sim_time_step)
                                    for j in range(nrepeats)])
-            Q_data = extract_Q_data(quat_trajs, step=lag_time_step, stop=stop,
-                                    silent=True, njobs=1)
+            Q_data = correlate(quat_trajs, step=lag_time_step, stop=stop)
+                                   # silent=True, njobs=1)
             Q_data_mean = np.mean(Q_data, axis=0)
             lag_times = arange_lag_times(Q_data_mean,
                                          sim_time_step*lag_time_step)
@@ -470,40 +477,48 @@ def compute_uncertainty(D, nrepeats, sim_time_max, lag_time_step, lag_time_max,
                         cos = np.abs(np.dot(axis, ref))
                         angle = np.rad2deg(np.arccos(cos))
                         angles_tmp.append(angle)
-                    angles.append(np.min(angles_tmp))
+                    angles.append(angles_tmp)
                 new_PAF_angles.append(angles)
-                i += 1
+                new_PAFs.append(fit._PAF) # HERE
+                # i += 1
                 break
             print('FAILED')
 
-        if not i%10:
-            stds_converged, errors, width_to_mean_ratios = [], [], []
-            for diff_coeff in np.array(new_diff_coeffs).T:
-                std = scipy.stats.bootstrap((diff_coeff,), np.std,
-                                            confidence_level=0.9,
-                                            n_resamples=100)
-                std_mean = np.average(std.confidence_interval)
-                std_diff = np.ptp(std.confidence_interval)
-                error_low = get_error(std.confidence_interval.low)
-                error_high = get_error(std.confidence_interval.high)
-
-                stds_converged.append(std_diff/std_mean < 0.1
-                                      or error_low == error_high)
-                errors.append(get_error(std_mean))
-                width_to_mean_ratios.append(std_diff/std_mean*100)
-
-            means = np.mean(new_diff_coeffs, axis=0)
-            print(f"Iteration {i}: {means[0]:.1e} {means[1]:.1e} {means[2]:.1e}"
-                  f", {errors[0]:.1e} {errors[1]:.1e} {errors[2]:.1e}. "
-                  f"(Largest interval width:) "
-                  f"{np.max(width_to_mean_ratios):.0f}%. "
-                  f"Chi2: {np.mean(new_chi2):.2e} {np.std(new_chi2):.1e}. "
-                  f"PAF angles: {np.mean(new_PAF_angles, axis=0)[0]:.2f}, "
-                  f"{np.mean(new_PAF_angles, axis=0)[1]:.2f}, "
-                  f"{np.mean(new_PAF_angles, axis=0)[2]:.2f}.")
-            if np.all(stds_converged):
-                break
-    return errors, new_PAF_angles
+        # if not i%10:
+        #     stds_converged, errors, width_to_mean_ratios = [], [], []
+        #     for diff_coeff in np.array(new_diff_coeffs).T:
+        #         std = scipy.stats.bootstrap((diff_coeff,), np.std,
+        #                                     confidence_level=0.9,
+        #                                     n_resamples=100)
+        #         std_mean = np.average(std.confidence_interval)
+        #         std_diff = np.ptp(std.confidence_interval)
+        #         error_low = get_error(std.confidence_interval.low)
+        #         error_high = get_error(std.confidence_interval.high)
+        #
+        #         stds_converged.append(std_diff/std_mean < 0.1
+        #                               or error_low == error_high)
+        #         errors.append(get_error(std_mean))
+        #         width_to_mean_ratios.append(std_diff/std_mean*100)
+        #
+        #     means = np.mean(new_diff_coeffs, axis=0)
+        #     stds = np.std(new_diff_coeffs, axis=0)
+        #     _diff_coeffs = np.array(new_diff_coeffs)
+        #     aniso = 2 * _diff_coeffs[:, 2] / (_diff_coeffs[:, 1] + _diff_coeffs[:, 0])
+        #
+        #     print(f"Iteration {i}: {means[0]:.1e} {means[1]:.1e} {means[2]:.1e}"
+        #           f", {errors[0]:.1e} {errors[1]:.1e} {errors[2]:.1e}. "
+        #           f"Errors: {stds[0]:.2e} {stds[1]:.2e} {stds[2]:.2e}. "
+        #           f"Aniso: {np.mean(aniso):.2f}, {np.std(aniso):.2f}. "
+        #           f"(Largest interval width:) "
+        #           f"{np.max(width_to_mean_ratios):.0f}%. "
+        #           f"Chi2: {np.mean(new_chi2):.2e} {np.std(new_chi2):.1e}. ")
+        #           # f"PAF angles: {np.mean(new_PAF_angles, axis=0)[0]:.2f}, "
+        #           # f"{np.mean(new_PAF_angles, axis=0)[1]:.2f}, "
+        #           # f"{np.mean(new_PAF_angles, axis=0)[2]:.2f}.")
+        #     if np.all(stds_converged):
+        #         break
+    # return errors, new_PAF_angles
+    return new_diff_coeffs, new_PAFs # HERE
 
 
 def run_all():

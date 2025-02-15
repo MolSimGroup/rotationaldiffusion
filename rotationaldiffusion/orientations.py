@@ -249,6 +249,7 @@ def get_orientations(universes, reference=None, select='all', in_memory=False,
     reference configuration is constructed for each trajectory or
     selection.
     """
+    # TODO: Add start, stop, step option.
     if isinstance(select, str):
         select = [select]
     if isinstance(universes, mda.Universe) or isinstance(universes, AtomGroup):
