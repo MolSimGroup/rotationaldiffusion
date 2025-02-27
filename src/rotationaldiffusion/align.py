@@ -13,7 +13,7 @@ logger = logging.getLogger('MDAnalysis.analysis.align')
 
 def iterative_average(
     mobile, reference=None, select='all', weights=None, niter=100,
-    eps=1e-6, verbose=False, **kwargs
+    eps=1e-6, verbose=False, run_kwargs=None, **kwargs
 ):
     """Iteratively calculate an optimal reference that is also the average
     structure after an RMSD alignment.
@@ -45,6 +45,8 @@ def iterative_average(
         equal.
     verbose : bool (optional)
         Verbosity.
+    run_kwargs : dict (optional)
+        Kwargs for AverageStructure.run() method.
     **kwargs : dict (optional)
         AverageStructure kwargs.
 
@@ -96,7 +98,7 @@ def iterative_average(
                 'mobile': sel_mobile, 'reference': 'all'
                 },
             weights=weights, **kwargs
-        ).run()
+        ).run(**run_kwargs)
         drmsd = rms.rmsd(ref.atoms.positions, avg_struc.results.positions,
                          weights=weights)
         ref = avg_struc.results.universe
@@ -108,19 +110,16 @@ def iterative_average(
                 f"ave-rmsd = {avg_struc.results.rmsd:.5f}"
             )
 
-    else:
+    if not drmsd < eps:
         logger.warning(
             "iterative_average(): Did NOT converge in "
             f"{niter} iterations to DRMSD < {eps}. "
             f"Last DRMSD = {drmsd:.5f}."
             f"Final average RMSD = {avg_struc.results.rmsd:.5f}"
         )
-
-        return avg_struc
-
-    logger.info(
-        f"iterative_average(): Converged to DRMSD < {eps}. "
-        f"Final average RMSD = {avg_struc.results.rmsd:.5f}"
-    )
-
+    else:
+        logger.info(
+            f"iterative_average(): Converged to DRMSD < {eps}. "
+            f"Final average RMSD = {avg_struc.results.rmsd:.5f}"
+        )
     return avg_struc

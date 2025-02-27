@@ -188,7 +188,7 @@ class Orientations(AnalysisBase):
 
 
 def get_orientations(universes, reference=None, select='all', in_memory=False,
-                     **kwargs):
+                     run_kwargs=None, **kwargs):
     """Run the :class:`Orientations` analysis class in one go for
     several trajectories and/or selections.
 
@@ -230,6 +230,8 @@ def get_orientations(universes, reference=None, select='all', in_memory=False,
         atoms in `mobile`.
     in_memory : bool, default: `False`
         Load each trajectory to memory before analyzing it.
+    run_kwargs : dict (optional)
+        Kwargs for Orientations.run() method.
     **kwargs :
         Additional keyword arguments to be passed to the
         :class:`Orientations` analysis class. Important arguments may
@@ -249,7 +251,6 @@ def get_orientations(universes, reference=None, select='all', in_memory=False,
     reference configuration is constructed for each trajectory or
     selection.
     """
-    # TODO: Add start, stop, step option.
     if isinstance(select, str):
         select = [select]
     if isinstance(universes, mda.Universe) or isinstance(universes, AtomGroup):
@@ -264,7 +265,7 @@ def get_orientations(universes, reference=None, select='all', in_memory=False,
         for j, sel in enumerate(select):
             orientations[i, j] = Orientations(
                 u, reference=reference, select=sel, **kwargs
-            ).run().results.orientations
+            ).run(**run_kwargs).results.orientations
     return orientations
 
 

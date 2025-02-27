@@ -1,30 +1,30 @@
 [build-system]
-requires = ['setuptools']
+requires = ['setuptools>=61.0', 'wheel']
 build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'rotationaldiffusion'
 version = '0.7'
-description = 'Extract rotational diffusion tensors of molecules from Molecular Dynamics trajectories.'
+description = 'Analysis of rotational diffusion observed in simulations.'
 license = {file = 'LICENSE'}
 authors = [{name = 'Simon Holtbruegge', email = 'simon.holtbruegge@rub.de'}]
 maintainers = [{name = 'Simon Holtbruegge', email = 'simon.holtbruegge@rub.de'}]
 readme = 'README.md'
+requires-python = '>=3.10'
 dependencies = [
-#    'python',
-#    'MDAnalysis>=2.7',
-#	'numpy',
-#    'scipy',
-#    'matplotlib'
+    'numpy>=1.23.2',
+    'scipy>=1.7.0',
+    'MDAnalysis>=2.8.0',
+    'matplotlib>=3.4.0',
+    'tqdm>=4.60.0'
 ]
 
 [project.optional-dependencies]
-test = [
+test = ['pytest>=6.0']
+docs = ['sphinx>=4.0']
+
 #    "MDAnalysisTests>=2.0.0",
-#    "pytest>=6.0",
 #    "pytest-xdist>=2.5",
 #    "pytest-cov>=3.0"
-]
-
-[tool.setuptools.packages.find]
-include = ['rotationaldiffusion*']
+#[tool.setuptools.packages.find]
+#include = ['rotationaldiffusion*']
