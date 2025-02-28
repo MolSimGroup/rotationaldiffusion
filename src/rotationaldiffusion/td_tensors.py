@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.rotationaldiffusion import apply_PAF_convention
+from .utils import apply_PAF_convention
 
 
 def instantaneous_tensors(lag_times, Q_data):

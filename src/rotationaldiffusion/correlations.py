@@ -4,7 +4,7 @@ import multiprocessing as mp
 import numpy as np
 from tqdm.asyncio import tqdm
 
-from src.rotationaldiffusion import quaternions as qops
+from . import quaternions as qops
 
 
 def _correlate_i(quaternions, quaternions_inv, ndx, do_variance=False):

@@ -1,9 +1,10 @@
 import numpy as np
 from tqdm.asyncio import tqdm
 
-from src.rotationaldiffusion import arange_lag_times, least_squares_fit
-from src.rotationaldiffusion.diffusion import qsim
-from src.rotationaldiffusion.correlations import correlate
+from .utils import arange_lag_times
+from .fitting import least_squares_fit
+# from pydiffusion import quaternionsimulation as qsim
+from .correlations import correlate
 
 
 def get_error(value):

@@ -1,7 +1,7 @@
 import numpy as np
 import scipy
 
-from src.rotationaldiffusion import quaternions as qops, instantaneous_tensors, \
+from . import quaternions as qops, instantaneous_tensors, \
     construct_Q_model, apply_PAF_convention
 
 
