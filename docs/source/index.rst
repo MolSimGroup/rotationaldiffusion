@@ -8,6 +8,12 @@ Welcome to rotationaldiffusion's documentation!
 
 :Release: |release|
 
+**rotationaldiffusion** is a Python package for analyzing rotational
+diffusion from molecular dynamics simulations. It provides tools to
+extract diffusion tensors and principal axes from the orientations of
+rigid bodies.
+
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:

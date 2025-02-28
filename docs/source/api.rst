@@ -5,3 +5,4 @@ API Documentation
    :maxdepth: 1
 
    pages/orientations
+   pages/quaternions
