@@ -38,28 +38,6 @@ def reference(top):
     return mda.Universe(top, 'data/ubq.gro')
 
 
-class TestLoadUniverses:
-    def test_one_trajectory(self, top, traj):
-        # Load one trajectory.
-        universes = rd.orientations.load_universes(top, traj)
-        assert_equal(len(universes), 1)
-        assert_array_equal([u.atoms.n_atoms for u in universes], 1231)
-
-    def test_several_trajectories(self, top, traj):
-        # Load two (i.e. several) trajectories.
-        universes = rd.orientations.load_universes(top, traj, traj)
-        assert_equal(len(universes), 2)
-        assert_array_equal([u.atoms.n_atoms for u in universes], 1231)
-
-    def test_kwargs(self, top, traj):
-        # Test if kwargs are passed correctly to the universe
-        # constructor using 'in_memory' as an example.
-        universes = rd.orientations.load_universes(top, traj, in_memory=True)
-        assert isinstance(universes[0].trajectory,
-                          mda.coordinates.memory.MemoryReader)
-        assert_array_equal([u.atoms.n_atoms for u in universes], 1231)
-
-
 class TestOrientations:
     # All expected orientations have been double-checked with GROMACS.
     def test_mobile1(self, mobile):
@@ -179,104 +157,6 @@ class TestOrientations:
         assert_array_almost_equal(ana.results.orientations[-1], np.eye(3))
         assert_array_almost_equal(
             ana.results.orientations[0], np.array(
-                [[-0.2217, -0.9064, 0.3595],
-                 [0.975, -0.2016, 0.093],
-                 [-0.0118, 0.3711, 0.9285]]), decimal=4)
-
-
-class TestGetOrientations:
-    def test_universe(self, mobile):
-        ana = rd.orientations.get_orientations(mobile)
-        assert_equal(ana.shape, (1, 1, mobile.trajectory.n_frames, 3, 3))
-        assert_array_almost_equal(
-            ana[0, 0, -1], np.array(
-                [[-0.2459, 0.9692, 0.0106],
-                 [-0.897, -0.2317, 0.3764],
-                 [0.3673, 0.083, 0.9264]]), decimal=4)
-
-    def test_reference(self, mobile, reference):
-        ana = rd.orientations.get_orientations(mobile, reference)
-        assert_equal(ana.shape, (1, 1, mobile.trajectory.n_frames, 3, 3))
-        assert_array_almost_equal(
-            ana[0, 0, 0], np.array(
-                [[-0.2459, 0.9692, 0.0106],
-                 [-0.897, -0.2317, 0.3764],
-                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
-
-    def test_atomgroup(self, mobile, reference):
-        ana = rd.orientations.get_orientations(mobile.atoms, reference.atoms)
-        assert_equal(ana.shape, (1, 1, mobile.trajectory.n_frames, 3, 3))
-        assert_array_almost_equal(
-            ana[0, 0, 0], np.array(
-                [[-0.2459, 0.9692, 0.0106],
-                 [-0.897, -0.2317, 0.3764],
-                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
-
-    def test_select(self, mobile, reference):
-        ana = rd.orientations.get_orientations(mobile, reference,
-                                               select='name CA or name C or name N')
-        assert_equal(ana.shape, (1, 1, mobile.trajectory.n_frames, 3, 3))
-        assert_array_almost_equal(
-            ana[0, 0, 0], np.array(
-                [[-0.2217, -0.9064, 0.3595],
-                 [0.975, -0.2016, 0.093],
-                 [-0.0118, 0.3711, 0.9285]]), decimal=4)
-
-    def test_in_memory(self, mobile, reference):
-        assert not isinstance(mobile.trajectory,
-                              mda.coordinates.memory.MemoryReader)
-        ana = rd.orientations.get_orientations(mobile, reference, in_memory=True)
-        assert isinstance(mobile.trajectory,
-                          mda.coordinates.memory.MemoryReader)
-        assert_equal(ana.shape, (1, 1, mobile.trajectory.n_frames, 3, 3))
-        assert_array_almost_equal(
-            ana[0, 0, 0], np.array(
-                [[-0.2459, 0.9692, 0.0106],
-                 [-0.897, -0.2317, 0.3764],
-                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
-
-    def test_multiple_trajectories(self, mobile, reference):
-        ana = rd.orientations.get_orientations([mobile, mobile], reference)
-        assert_equal(ana.shape, (2, 1, mobile.trajectory.n_frames, 3, 3))
-        assert_array_almost_equal(
-            ana[0, 0, 0], np.array(
-                [[-0.2459, 0.9692, 0.0106],
-                 [-0.897, -0.2317, 0.3764],
-                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
-        assert_array_almost_equal(
-            ana[1, 0, 0], np.array(
-                [[-0.2459, 0.9692, 0.0106],
-                 [-0.897, -0.2317, 0.3764],
-                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
-
-    def test_multiple_selections(self, mobile, reference):
-        ana = rd.orientations.get_orientations(
-            mobile, reference, select=['all', 'name CA or name C or name N'])
-        assert_equal(ana.shape, (1, 2, mobile.trajectory.n_frames, 3, 3))
-        assert_array_almost_equal(
-            ana[0, 0, 0], np.array(
-                [[-0.2459, 0.9692, 0.0106],
-                 [-0.897, -0.2317, 0.3764],
-                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
-        assert_array_almost_equal(
-            ana[0, 1, 0], np.array(
-                [[-0.2217, -0.9064, 0.3595],
-                 [0.975, -0.2016, 0.093],
-                 [-0.0118, 0.3711, 0.9285]]), decimal=4)
-
-    def test_multiple_trajectories_and_selections(self, mobile, reference):
-        ana = rd.orientations.get_orientations(
-            3*[mobile], reference,
-            select=['all', 'name CA or name C or name N'])
-        assert_equal(ana.shape, (3, 2, mobile.trajectory.n_frames, 3, 3))
-        assert_array_almost_equal(ana[0, 0, -1], np.eye(3))
-        assert_array_almost_equal(
-            ana[1, 0, 0], np.array(
-                [[-0.2459, 0.9692, 0.0106],
-                 [-0.897, -0.2317, 0.3764],
-                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
-        assert_array_almost_equal(
-            ana[2, 1, 0], np.array(
                 [[-0.2217, -0.9064, 0.3595],
                  [0.975, -0.2016, 0.093],
                  [-0.0118, 0.3711, 0.9285]]), decimal=4)

@@ -519,15 +519,3 @@ def compute_uncertainty(D, nrepeats, sim_time_max, lag_time_step, lag_time_max,
         #         break
     # return errors, new_PAF_angles
     return new_diff_coeffs, new_PAFs # HERE
-
-
-def run_all():
-    # Load universe.
-    # (Compute average structure).
-    # RMSD-fit trajectory to selection and frame.
-    # Compute quaternion covariance matrix.
-    # (Compute instantaneous tensors).
-    # (Plot intermediate results).
-    # Least-squares fit.
-    # (Plot and/or report results).
-    return

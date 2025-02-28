@@ -8,4 +8,5 @@ from .orientations import (load_universes, Orientations,
 
 from .align import iterative_average
 
-from . import quaternions, parser, orientations, plotting
+from . import quaternions, orientations
+
