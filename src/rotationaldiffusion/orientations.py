@@ -2,7 +2,6 @@
 ====================
 """
 import numpy as np
-import MDAnalysis as mda
 from MDAnalysis import AtomGroup
 from MDAnalysis.analysis import rms, align
 from MDAnalysis.lib import util
