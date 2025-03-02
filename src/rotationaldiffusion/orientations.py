@@ -1,5 +1,6 @@
-"""Orientations
-====================
+"""
+Orientations
+============
 
 This module provides an MDAnalysis-based class for extracting the
 orientations of molecular structures from MD trajectories. The

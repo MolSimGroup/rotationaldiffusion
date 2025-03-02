@@ -3,16 +3,8 @@
 Orientations
 ============
 
-Functions
----------
-
-.. autosummary::
-    :toctree: generated/
-
-    load_universes
-    get_orientations
-    load_orientations
-    
+.. automodule:: rotationaldiffusion.orientations
+   :noindex:
 
 Classes
 -------
