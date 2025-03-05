@@ -129,9 +129,9 @@ class Orientations(AnalysisBase):
         self._ref_atoms = self.reference.select_atoms(*select['reference'])
         self._mobile_atoms, self._ref_atoms = align.get_matching_atoms(
             self._mobile_atoms, self._ref_atoms, tol_mass=tol_mass,
-            strict=strict, match_atoms=verify_match)
+            strict=strict, match_atoms=verify_match
+        )
 
-        weights = np.array(weights) if weights is not None else None
         self.weights = util.get_weights(self._ref_atoms, weights)
         self._unwrap = unwrap
 
@@ -140,7 +140,7 @@ class Orientations(AnalysisBase):
         if self._unwrap:
             try:
                 self._ref_atoms.unwrap()
-            except NoDataError:
+            except (NoDataError, ValueError):
                 warnings.warn('Failed to unwrap the reference system. '
                               'Continuing without unwrapping the '
                               'reference system.')
@@ -161,8 +161,8 @@ class Orientations(AnalysisBase):
         mobile_center = self._mobile_atoms.center(self.weights)
         mobile_coordinates = self._mobile_atoms.positions - mobile_center
         # Compute best-fit rotation matrix.
-        orientation, rmsd = align.rotation_matrix(mobile_coordinates,
-                                                  self._ref_coordinates,
-                                                  self.weights)
+        orientation, rmsd = align.rotation_matrix(
+            mobile_coordinates, self._ref_coordinates, self.weights
+        )
         self.results.orientations[index] = orientation
         self.results._rmsd[index] = rmsd

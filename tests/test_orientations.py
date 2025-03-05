@@ -1,159 +1,166 @@
 """
-Unit tests for the ``orientations`` module.
+Tests for the ``orientations`` module.
 """
-import os
-import sys
-
 import pytest
 import numpy as np
-import rotationaldiffusion as rd
+from numpy.testing import assert_allclose
 import MDAnalysis as mda
-from MDAnalysis.exceptions import SelectionError
-from numpy.testing import (assert_equal, assert_array_equal,
-                           assert_array_almost_equal)
-sys.path.insert(0, os.path.abspath(".."))
+from MDAnalysis import NoDataError, SelectionError
+from MDAnalysisTests.datafiles import PSF, DCD, TPR, GRO
+import rotationaldiffusion as rd
 
 
-@pytest.fixture
-def top():
-    return 'data/ubq.tpr'
+@pytest.fixture()
+def universe():
+    return mda.Universe(PSF, DCD)
 
 
-@pytest.fixture
-def traj():
-    return 'data/ubq.xtc'
+@pytest.fixture()
+def reference():
+    u = mda.Universe(PSF, DCD)
+    u.trajectory[-1]
+    return u
 
 
-@pytest.fixture
-def mobile(top, traj):
-    return mda.Universe(top, traj)
-
-
-@pytest.fixture
-def reference(top):
-    # Last frame of mobile.
-    return mda.Universe(top, 'data/ubq.gro')
+ORIENTATIONS = {
+    'default': np.array([
+        [ 0.9995, -0.0059,  0.0304],
+        [ 0.0064,  0.9998, -0.0167],
+        [-0.0303,  0.0169,  0.9994]
+    ]),
+    'selection': np.array([
+        [ 0.9995, -0.0061, -0.032 ],
+        [ 0.0061,  1.    ,  0.0013],
+        [ 0.032 , -0.0015,  0.9995]
+    ]),
+    'weighted': np.array([
+        [ 0.9995,  0.005 , -0.0316],
+        [-0.0045,  0.9999,  0.0159],
+        [ 0.0317, -0.0157,  0.9994]
+    ])
+}
 
 
 class TestOrientations:
-    # All expected orientations have been double-checked with GROMACS.
-    def test_mobile1(self, mobile):
-        ana = rd.orientations.Orientations(mobile, verbose=False).run()
-        assert_equal(len(ana.results.orientations), mobile.trajectory.n_frames)
-        assert_array_almost_equal(ana.results.orientations[0], np.eye(3))
-        assert_array_almost_equal(
-            ana.results.orientations[-1], np.array(
-                [[-0.2459, 0.9692, 0.0106],
-                 [-0.897, -0.2317, 0.3764],
-                 [0.3673, 0.083, 0.9264]]), decimal=4)
+    def test_defaults(self, universe):
+        ana = rd.orientations.Orientations(universe, unwrap=False).run()
+        assert len(ana.results.orientations) == universe.trajectory.n_frames
+        assert_allclose(ana.results.orientations[0], np.eye(3), atol=1e-8)
+        assert_allclose(
+            ana.results.orientations[-1], ORIENTATIONS['default'], atol=1e-4
+        )
 
-    def test_mobile2(self, mobile):
-        mobile.trajectory[-1]  # Set trajectory to last frame.
-        ana = rd.orientations.Orientations(mobile, verbose=False).run()
-        assert_equal(len(ana.results.orientations), mobile.trajectory.n_frames)
-        assert_array_almost_equal(ana.results.orientations[-1], np.eye(3))
-        assert_array_almost_equal(
-            ana.results.orientations[0], np.array(
-                [[-0.2459, 0.9692, 0.0106],
-                 [-0.8970, -0.2317, 0.3764],
-                 [0.3673, 0.0830, 0.9264]]).T, decimal=4)
+    def test_uses_current_frame(self, universe):
+        universe.trajectory[-1]  # Set trajectory to last frame.
+        ana = rd.orientations.Orientations(universe, unwrap=False).run()
+        assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
+        assert_allclose(
+            ana.results.orientations[0], ORIENTATIONS['default'].T, atol=1e-4
+        )
 
-    def test_broken_pbc(self, mobile):
-        ana = rd.orientations.Orientations(mobile, unwrap=False, verbose=False).run()
-        assert_equal(len(ana.results.orientations), mobile.trajectory.n_frames)
-        assert_array_almost_equal(ana.results.orientations[0], np.eye(3))
-        assert_array_almost_equal(
-            ana.results.orientations[-1], np.array(
-                [[-0.0604, -0.8743, -0.4815],
-                 [0.6933, -0.3838, 0.6098],
-                 [-0.7180, -0.2970, 0.6294]]), decimal=4)
-
-    def test_reference(self, mobile, reference):
+    def test_uses_reference(self, universe, reference):
         ana = rd.orientations.Orientations(
-            mobile, reference=reference, verbose=False).run()
-        assert_equal(len(ana.results.orientations), mobile.trajectory.n_frames)
-        assert_array_almost_equal(ana.results.orientations[-1], np.eye(3))
-        assert_array_almost_equal(
-            ana.results.orientations[0], np.array(
-                [[-0.2459, 0.9692, 0.0106],
-                 [-0.897, -0.2317, 0.3764],
-                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
+            universe, reference=reference, unwrap=False
+        ).run()
+        assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
+        assert_allclose(
+            ana.results.orientations[0], ORIENTATIONS['default'].T, atol=1e-4
+        )
 
-    def test_atomgroup(self, mobile, reference):
+    def test_accepts_atomgroups(self, universe, reference):
         ana = rd.orientations.Orientations(
-            mobile.atoms, reference=reference.atoms, verbose=False).run()
-        assert_equal(len(ana.results.orientations), mobile.trajectory.n_frames)
-        assert_array_almost_equal(ana.results.orientations[-1], np.eye(3))
-        assert_array_almost_equal(
-            ana.results.orientations[0], np.array(
-                [[-0.2459, 0.9692, 0.0106],
-                 [-0.897, -0.2317, 0.3764],
-                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
-
-    def test_in_memory(self, mobile, reference):
-        mobile.transfer_to_memory()
-        reference.transfer_to_memory()
-        ana = rd.orientations.Orientations(
-            mobile, reference=reference, verbose=False).run()
-        assert_equal(len(ana.results.orientations), mobile.trajectory.n_frames)
-        assert_array_almost_equal(ana.results.orientations[-1], np.eye(3))
-        assert_array_almost_equal(
-            ana.results.orientations[0], np.array(
-                [[-0.2459, 0.9692, 0.0106],
-                 [-0.897, -0.2317, 0.3764],
-                 [0.3673, 0.083, 0.9264]]).T, decimal=4)
+            universe.atoms, reference=reference.atoms, unwrap=False
+        ).run()
+        assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
+        assert_allclose(
+            ana.results.orientations[0], ORIENTATIONS['default'].T, atol=1e-4
+        )
 
     @pytest.mark.parametrize('selection', [
-        'name CA or name C or name N',
-        ('name CA or name C or name N', 'name CA or name C or name N'),
-        {'mobile': 'name CA or name C or name N',
-         'reference': 'name CA or name C or name N'}])
-    def test_select(self, mobile, reference, selection):
+        'name CA',
+        ('name CA', 'name CA'),
+        {'mobile': 'name CA', 'reference': 'name CA'}
+    ])
+    def test_accepts_selections(self, universe, reference, selection):
         ana = rd.orientations.Orientations(
-            mobile, reference, select=selection, verbose=False).run()
-        assert_equal(len(ana.results.orientations), mobile.trajectory.n_frames)
-        assert_array_almost_equal(ana.results.orientations[-1], np.eye(3))
-        assert_array_almost_equal(
-            ana.results.orientations[0], np.array(
-                [[-0.2217, -0.9064, 0.3595],
-                 [0.975, -0.2016, 0.093],
-                 [-0.0118, 0.3711, 0.9285]]), decimal=4)
+            universe, reference=reference, select=selection, unwrap=False
+        ).run()
+        assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
+        assert_allclose(
+            ana.results.orientations[0], ORIENTATIONS['selection'], atol=1e-4
+        )
 
-    def test_select_missing_residue_error(self, mobile, reference):
+    @pytest.mark.parametrize('sel2', ['not resid 1', 'not atom 4AKE 1 CA'])
+    def test_raises_selection_error(self, universe, reference, sel2):
         with pytest.raises(SelectionError):
             rd.orientations.Orientations(
-                mobile, reference, select=('all', 'not resid 1'),
-                verbose=False).run()
+                universe, reference, select=('all', sel2), unwrap=False
+            ).run()
 
-    def test_select_missing_atom_error(self, mobile, reference):
-        with pytest.raises(SelectionError):
+    def test_mass_weighting(self, universe, reference):
+        ana = rd.orientations.Orientations(
+            universe, reference=reference, weights='mass', unwrap=False
+        ).run()
+        assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
+        assert_allclose(
+            ana.results.orientations[0], ORIENTATIONS['weighted'], atol=1e-4
+        )
+
+    def test_custom_weighting(self, universe, reference):
+        weights = np.zeros((universe.atoms.n_atoms,))
+        weights[universe.atoms.select_atoms('name CA').ids] = 1
+        ana = rd.orientations.Orientations(
+            universe, reference=reference, weights=weights, unwrap=False
+        ).run()
+        assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
+        assert_allclose(
+            ana.results.orientations[0], ORIENTATIONS['selection'], atol=1e-4
+        )
+
+    def test_unwraps_molecules(self):
+        mobile = mda.Universe(TPR, GRO)
+        mobile.select_atoms('protein').wrap()
+        ref = mda.Universe(TPR, GRO)
+        ref.select_atoms('protein').unwrap()
+
+        ana = rd.orientations.Orientations(
+            mobile, reference=ref, select='protein', unwrap=True
+        ).run()
+        assert_allclose(ana.results.orientations[0], np.eye(3), atol=1e-8)
+
+        ana = rd.orientations.Orientations(
+            ref, reference=mobile, select='protein', unwrap=True
+        ).run()
+        assert_allclose(ana.results.orientations[0], np.eye(3), atol=1e-8)
+
+        with pytest.raises(AssertionError):
+            ana = rd.orientations.Orientations(
+                mobile, reference=ref, select='protein', unwrap=False
+            ).run()
+            assert_allclose(ana.results.orientations[0], np.eye(3), atol=1e-8)
+
+    def test_unwrapping_fails(self):
+        mobile = mda.Universe(TPR, GRO)
+        ref = mobile.copy()
+        ref.atoms.dimensions = None
+
+        with pytest.warns(UserWarning):
             rd.orientations.Orientations(
-                mobile, reference, verbose=False,
-                select=('all', 'not atom seg_0_Protein_chain_A 1 CA')).run()
+                mobile, reference=ref, select='protein', unwrap=True
+            ).run()
 
-    def test_mass_weighting(self, mobile, reference):
-        ana = rd.orientations.Orientations(
-            mobile, reference=reference, weights='mass', verbose=False).run()
-        assert_equal(len(ana.results.orientations), mobile.trajectory.n_frames)
-        assert_array_almost_equal(ana.results.orientations[-1], np.eye(3))
-        assert_array_almost_equal(
-            ana.results.orientations[0], np.array(
-                [[-0.2387, -0.8998, 0.3653],
-                 [0.9711, -0.2233, 0.0844],
-                 [0.0056, 0.3749, 0.927]]), decimal=4)
+        with pytest.raises(ValueError):
+            rd.orientations.Orientations(
+                ref, reference=mobile, select='protein', unwrap=True
+            ).run()
 
-    def test_custom_weighting(self, mobile, reference):
-        # Put weight 1 on backbone atoms, 0 on rest.
-        # Analogous to select backbone.
-        sel = 'name CA or name C or name N'
-        weights = np.zeros((mobile.atoms.n_atoms,))
-        weights[mobile.atoms.select_atoms(sel).ids] = 1
-        ana = rd.orientations.Orientations(
-            mobile, reference=reference, weights=weights, verbose=False).run()
-        assert_equal(len(ana.results.orientations), mobile.trajectory.n_frames)
-        assert_array_almost_equal(ana.results.orientations[-1], np.eye(3))
-        assert_array_almost_equal(
-            ana.results.orientations[0], np.array(
-                [[-0.2217, -0.9064, 0.3595],
-                 [0.975, -0.2016, 0.093],
-                 [-0.0118, 0.3711, 0.9285]]), decimal=4)
+        ref = mda.Universe(GRO)
+        with pytest.warns(UserWarning):
+            rd.orientations.Orientations(
+                mobile, reference=ref, select='protein', unwrap=True
+            ).run()
+
+        with pytest.raises(NoDataError):
+            rd.orientations.Orientations(
+                ref, reference=mobile, select='protein', unwrap=True
+            ).run()

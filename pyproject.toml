@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ['pytest>=6.0']
+test = ['pytest>=6.0', 'MDAnalysisTests']
 docs = ['sphinx>=4.0']
 
 #    "MDAnalysisTests>=2.0.0",
