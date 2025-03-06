@@ -28,4 +28,4 @@ docs = ['sphinx>=4.0', 'numpydoc', 'nbsphinx', 'sphinx-book-theme']
 #    "pytest-xdist>=2.5",
 #    "pytest-cov>=3.0"
 #[tool.setuptools.packages.find]
-#include = ['rotationaldiffusion*']
+#include = ['RotationalDiffusion*']

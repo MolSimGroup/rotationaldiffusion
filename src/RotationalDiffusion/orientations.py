@@ -33,7 +33,7 @@ class Orientations(AnalysisBase):
     Basic usage with the current frame as reference:
 
     >>> import MDAnalysis as mda
-    >>> import rotationaldiffusion as rd
+    >>> import RotationalDiffusion as rd
     >>> u = mda.Universe('protein.pdb', 'trajectory.xtc')
     >>> orient = rd.orientations.Orientations(u, select='backbone')
     >>> orient.run()

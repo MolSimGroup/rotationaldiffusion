@@ -4,7 +4,7 @@ Unit tests for the ``correlations`` module.
 
 import pytest
 from numpy.testing import assert_equal, assert_array_almost_equal
-import rotationaldiffusion as rd
+import RotationalDiffusion as rd
 
 
 @pytest.fixture

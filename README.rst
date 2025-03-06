@@ -32,7 +32,7 @@ Then, cd into the cloned directory and  install the package using pip ::
 
 We suggest to use the package by importing it as ::
 
-    import rotationaldiffusion as rd
+    import RotationalDiffusion as rd
 
 
 Documentation and Tutorial

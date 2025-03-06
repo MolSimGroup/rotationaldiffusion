@@ -7,7 +7,7 @@ from numpy.testing import assert_allclose
 import MDAnalysis as mda
 from MDAnalysis import NoDataError, SelectionError
 from MDAnalysisTests.datafiles import PSF, DCD, TPR, GRO
-import rotationaldiffusion as rd
+import RotationalDiffusion as rd
 
 
 @pytest.fixture()

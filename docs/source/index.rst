@@ -1,14 +1,14 @@
-.. rotationaldiffusion documentation master file, created by
+.. RotationalDiffusion documentation master file, created by
    sphinx-quickstart on Thu Mar 15 13:55:56 2018.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to rotationaldiffusion's documentation!
+Welcome to RotationalDiffusion's documentation!
 =========================================================
 
 :Release: |release|
 
-**rotationaldiffusion** is a Python package for analyzing rotational
+**RotationalDiffusion** is a Python package for analyzing rotational
 diffusion from molecular dynamics simulations. It provides tools to
 extract diffusion tensors and principal axes from the orientations of
 rigid bodies.

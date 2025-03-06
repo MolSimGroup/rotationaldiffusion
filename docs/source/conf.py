@@ -3,12 +3,12 @@
 
 # -- Path setup --------------------------------------------------------------
 
-import rotationaldiffusion
+import RotationalDiffusion
 
 
 # -- Project information -----------------------------------------------------
 
-project = "rotationaldiffusion"
+project = "RotationalDiffusion"
 copyright = (
     "2024, Simon Holtbruegge."
 )
@@ -91,8 +91,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "rotationaldiffusion.tex", "rotationaldiffusion Documentation",
-     "rotationaldiffusion", "manual"),
+    (master_doc, "RotationalDiffusion.tex", "RotationalDiffusion Documentation",
+     "RotationalDiffusion", "manual"),
 ]
 
 
@@ -101,7 +101,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, "rotationaldiffusion", "rotationaldiffusion Documentation",
+    (master_doc, "RotationalDiffusion", "RotationalDiffusion Documentation",
      [author], 1)
 ]
 
@@ -112,8 +112,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, "rotationaldiffusion", "rotationaldiffusion Documentation",
-     author, "rotationaldiffusion", "A (hopefully soon-to-be) MDAKit for studying rotational diffusion from Molecular Dynamics simulations.",
+    (master_doc, "RotationalDiffusion", "RotationalDiffusion Documentation",
+     author, "RotationalDiffusion", "A (hopefully soon-to-be) MDAKit for studying rotational diffusion from Molecular Dynamics simulations.",
      "Miscellaneous"),
 ]
 

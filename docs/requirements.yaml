@@ -1,4 +1,4 @@
-name: rotationaldiffusion-docs
+name: RotationalDiffusion-docs
 channels:
   - conda-forge
 

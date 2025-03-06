@@ -3,9 +3,9 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 import matplotlib as mpl
 
-import rotationaldiffusion as rd
-from rotationaldiffusion import quaternions as qops
-from rotationaldiffusion import plotting as rdplot
+import RotationalDiffusion as rd
+from RotationalDiffusion import quaternions as qops
+from RotationalDiffusion import plotting as rdplot
 
 
 class TestQuaternionOperations(unittest.TestCase):

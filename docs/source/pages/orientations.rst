@@ -1,9 +1,9 @@
-.. module:: rotationaldiffusion.orientations
+.. module:: RotationalDiffusion.orientations
 
 Orientations
 ============
 
-.. automodule:: rotationaldiffusion.orientations
+.. automodule:: RotationalDiffusion.orientations
    :noindex:
 
 Classes
