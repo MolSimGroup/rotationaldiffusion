@@ -3,18 +3,25 @@
 .. |se| raw:: html
    </strike>
 
-Purpose
-=======
+RotationalDiffusion
+===================
+|docs| |License| |mdanalysis|
 
-Extract the principal axes and the rotational diffusion tensor from the
-orientations of a rigid body, typically a protein in solution.
+A Python package for analyzing rotational diffusion from molecular
+dynamics simulations.
 
-The orientations are extracted from Molecular Dynamics trajectories.
-Alternatively, the orientations can be passed directly as rotational
-matrices or quaternions.
 
-Installation instructions
-=========================
+Features
+--------
+
+- Determine the orientation of a molecule along an MD trajectory
+- Compute rotational correlation functions
+- Analyze time-dependent rotational diffusion behaviour
+- Fit a Brownian rotational diffusion model to the rotational correlation functions
+- Estimate uncertainties of the obtained principal axes and diffusion coefficients
+
+Installation
+------------
 First, clone this repository using ::
 
     git clone https://github.com/MolSimGroup/rotationaldiffusion.git
@@ -23,89 +30,52 @@ Then, cd into the cloned directory and  install the package using pip ::
 
      pip install .
 
-It is suggested to use the package by importing it as ::
+We suggest to use the package by importing it as ::
 
     import rotationaldiffusion as rd
 
-Basic usage
-============
-**Note:** a tutorial and more extensive documentation may follow soon.
 
-For analyzing a single trajectory, run ::
+Documentation and Tutorial
+--------------------------
+The full documentation is available at:
+https://rotationaldiffusion.readthedocs.io
 
-    import rotationaldiffusion as rd
-    import MDAnalysis as mda
-
-    # Load the trajectory into a MDAnalysis universe.
-    u = mda.Universe(TOPOLOGY, TRAJECTORY)
-
-    # Compute the orientations.
-    # Using 'name CA or name N or name C' typically leads to a similar
-    # selection as GROMACS 'backbone' selection.
-    orientation_analysis = rd.orientations.Orientations(u, select=SELECTION_STRING)
-    orientation_analysis.run()
-    orientations = orientation_analysis.results.orientations
-
-    # Alternatively, the orientations can be loaded from GROMACS
-    # 'gmx rotmat' output files.
-    orientations, time = rd.load_orientations(XVG-FILE)
-
-    # Convert to quaternions.
-    quats = rd.quaternions.rotmat2quat(orientations)
-
-    # Compute rotational correlation matrix Q.
-    correlations = rd.extract_Q_data(quats)
-
-    # Get array of correlation times.
-    time = rd.arange_lag_times(correlations, TIME_STEP)
-
-    # Compute time-dependent diffusion coefficients and principal axes.
-    # Note: visualize these functions to decide on a model
-    # (anisotropic, semi-isotropic, isotropic) and a fit window.
-    D, PAF = rd.instantaneous_tensors(time, correlations)
-
-    # Fit.
-    fit = rd.least_squares_fit(time, correlations, model=MODEL_STRING)
-    D = fit.D
-    PAF = fit.rotation_axes
-
-Notes
-=====
-- The API is still unstable and may change between versions.
-- Docstrings are available, the documentation can be generated using
-sphinx by running ``make html`` in the *docs* subdirectory.
-- A short user guide and/or tutorial are planned, as is a publication
-on this topic.
-- The method is based on the theoretical description of Brownian rotational
-dynamics of a rigid body developed by Favro (1960). The method has been
-implemented before (pydiffusion by Max Linke).
-
-Planned features
-================
-
-*May or may not be implemented, let's see ;)*
-
-- [X] use git for version control
-- [X] align using MDAnalysis
-- [ ] better testing (work in progress)
-- [ ] continuous integration tests
-- [ ] add proper logging, warnings, and errors
-- [ ] command-line interface
-- [ ] tutorial
-- [ ] better documentation (work in progress)
-- [X] automated documentation
-- [ ] online documentation
-- [ ] add doctests
-- [X] use codecov to check how much code is tested => Pycharm IDE uses coverage
-- [ ] publish to PyPI
-- [ ] publish to conda-forge (or similar)
-- [ ] add parallelization (e.g. using dask)
-- [ ] add acknowledgement / funding (RESOLV)
+A comprehensive tutorial demonstrating the main functionalities of the
+package is included in the documentation.
 
 Author
-======
-This package was written by Simon Holtbruegge. Feel free to contact me in case
-you experience any issues or need assistance with using the code
-([simon.holtbruegge@rub.de](mailto:simon.holtbruegge@rub.de)).
+------
+This package was developed by Simon Holtbrügge. Contact:
+simon.holtbruegge@rub.de.
+
+Citation
+--------
+If you use this package in your research, please cite
+
+Holtbrügge, S.; Schäfer, L. *(in preparation)*
+
+Acknowledgement
+---------------
+This package extends prior work on rotational diffusion by Max Linke:
+
+    Linke, M.; Köfinger, J.; and Hummer, G., **2018**, *J. Phys. Chem. B*,
+    122(21), 5630-5639. `DOI: 10.1021/acs.jpcb.7b11988 <https://doi.org/10.1021/acs.jpcb.7b11988>`_
+
+License
+-------
+This project is licensed under the GNU General Public License v3.0 - see
+the LICENSE file for details.
 
 © Simon Holtbrügge, Lars Schäfer, 2024.
+
+  .. |docs| image:: https://readthedocs.org/projects/rotationaldiffusion/badge/?version=latest
+    :alt: Documentation Status
+    :target: https://rotationaldiffusion.readthedocs.io
+
+  .. |License| image:: https://img.shields.io/badge/License-GPLv3-blue.svg
+    :alt: License: GPL v3
+    :target: https://www.gnu.org/licenses/gpl-3.0
+
+  .. |mdanalysis| image:: https://img.shields.io/badge/powered%20by-MDAnalysis-orange.svg?logoWidth=16&logo=data:image/x-icon;base64,AAABAAEAEBAAAAEAIAAoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJD+XwCY/fEAkf3uAJf97wGT/a+HfHaoiIWE7n9/f+6Hh4fvgICAjwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACT/yYAlP//AJ///wCg//8JjvOchXly1oaGhv+Ghob/j4+P/39/f3IAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJH8aQCY/8wAkv2kfY+elJ6al/yVlZX7iIiI8H9/f7h/f38UAAAAAAAAAAAAAAAAAAAAAAAAAAB/f38egYF/noqAebF8gYaagnx3oFpUUtZpaWr/WFhY8zo6OmT///8BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAn46Ojv+Hh4b/jouJ/4iGhfcAAADnAAAA/wAAAP8AAADIAAAAAwCj/zIAnf2VAJD/PAAAAAAAAAAAAAAAAICAgNGHh4f/gICA/4SEhP+Xl5f/AwMD/wAAAP8AAAD/AAAA/wAAAB8Aov9/ALr//wCS/Z0AAAAAAAAAAAAAAACBgYGOjo6O/4mJif+Pj4//iYmJ/wAAAOAAAAD+AAAA/wAAAP8AAABhAP7+FgCi/38Axf4fAAAAAAAAAAAAAAAAiIiID4GBgYKCgoKogoB+fYSEgZhgYGDZXl5e/m9vb/9ISEjpEBAQxw8AAFQAAAAAAAAANQAAADcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjo6Mb5iYmP+cnJz/jY2N95CQkO4pKSn/AAAA7gAAAP0AAAD7AAAAhgAAAAEAAAAAAAAAAACL/gsAkv2uAJX/QQAAAAB9fX3egoKC/4CAgP+NjY3/c3Nz+wAAAP8AAAD/AAAA/wAAAPUAAAAcAAAAAAAAAAAAnP4NAJL9rgCR/0YAAAAAfX19w4ODg/98fHz/i4uL/4qKivwAAAD/AAAA/wAAAP8AAAD1AAAAGwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALGxsVyqqqr/mpqa/6mpqf9KSUn/AAAA5QAAAPkAAAD5AAAAhQAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADkUFBSuZ2dn/3V1df8uLi7bAAAATgBGfyQAAAA2AAAAMwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB0AAADoAAAA/wAAAP8AAAD/AAAAWgC3/2AAnv3eAJ/+dgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA9AAAA/wAAAP8AAAD/AAAA/wAKDzEAnP3WAKn//wCS/OgAf/8MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIQAAANwAAADtAAAA7QAAAMAAABUMAJn9gwCe/e0Aj/2LAP//AQAAAAAAAAAA
+    :alt: Powered by MDAnalysis
+    :target: https://www.mdanalysis.org
