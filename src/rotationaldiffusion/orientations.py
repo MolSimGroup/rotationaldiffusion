@@ -7,16 +7,17 @@ orientations of molecular structures from MD trajectories. The
 orientations are the optimal rotation matrices that align a trajectory
 frame to a reference structure.
 """
+from copy import copy
 import warnings
 import numpy as np
 from MDAnalysis import AtomGroup, NoDataError
 from MDAnalysis.analysis import rms, align
 from MDAnalysis.lib import util
 from MDAnalysis.analysis.base import AnalysisBase
+from MDAnalysis.analysis.results import ResultsGroup
 
 
 class Orientations(AnalysisBase):
-    # TODO: Parallelize the `Orientations` analysis class.
     r"""Determines the orientation of a molecular structure along a
     trajectory.
 
@@ -40,9 +41,11 @@ class Orientations(AnalysisBase):
     >>> print(orient.results.orientations.shape)
     (100, 3, 3)  # For a 100-frame trajectory
     """
+    _analysis_algorithm_is_parallelizable = True
+
     def __init__(self, mobile, reference=None, select='all', weights=None,
-                 unwrap=True, verify_match=True, tol_mass=0.1, strict=True,
-                 verbose=False):
+                 center=True, unwrap=True, verify_match=True, tol_mass=0.1,
+                 strict=True, verbose=False):
         """ Parameters
         ----------
         mobile : AtomGroup or Universe
@@ -76,6 +79,10 @@ class Orientations(AnalysisBase):
             - `'mass'`: use masses defined in `reference`
             - :any:`array_like`: use custom weights (must match the
             number of atoms in the selection)
+
+        center : bool, default: :any:`True`
+            Center molecules. Only deactivate if molecules are already
+            centered.
         unwrap : bool, default: :any:`True`
             Unwrap molecules to repair broken structures due to periodic
             boundary conditions.
@@ -133,6 +140,7 @@ class Orientations(AnalysisBase):
         )
 
         self.weights = util.get_weights(self._ref_atoms, weights)
+        self._center = center
         self._unwrap = unwrap
 
     def _prepare(self):
@@ -145,9 +153,13 @@ class Orientations(AnalysisBase):
                               'Continuing without unwrapping the '
                               'reference system.')
 
+        self._ref_coordinates = copy(self._ref_atoms.positions)
+
         # Center the reference.
-        self._ref_center = self._ref_atoms.center(self.weights)
-        self._ref_coordinates = self._ref_atoms.positions - self._ref_center
+        if self._center:
+            self._ref_center = self._ref_atoms.center(self.weights)
+            self._ref_coordinates -= self._ref_center
+
         # Allocate an array for storing the orientation matrices.
         self.results.orientations = np.zeros((self.n_frames, 3, 3))
         self.results._rmsd = np.zeros((self.n_frames,))
@@ -157,12 +169,27 @@ class Orientations(AnalysisBase):
         # Make molecules whole.
         if self._unwrap:
             self._mobile_atoms.unwrap()
+
         # Remove translation.
-        mobile_center = self._mobile_atoms.center(self.weights)
-        mobile_coordinates = self._mobile_atoms.positions - mobile_center
+        if self._center:
+            mobile_center = self._mobile_atoms.center(self.weights)
+            self._mobile_atoms.positions -= mobile_center
+
         # Compute best-fit rotation matrix.
         orientation, rmsd = align.rotation_matrix(
-            mobile_coordinates, self._ref_coordinates, self.weights
+            self._mobile_atoms.positions,
+            self._ref_coordinates,
+            self.weights
         )
         self.results.orientations[index] = orientation
         self.results._rmsd[index] = rmsd
+
+    @classmethod
+    def get_supported_backends(cls):
+        return ('serial', 'multiprocessing', 'dask')
+
+    def _get_aggregator(self):
+        return ResultsGroup(lookup={
+            'orientations': ResultsGroup.ndarray_vstack,
+            '_rmsd': ResultsGroup.ndarray_hstack
+        })

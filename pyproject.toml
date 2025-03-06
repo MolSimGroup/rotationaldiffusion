@@ -16,7 +16,8 @@ dependencies = [
     'scipy>=1.7.0',
     'MDAnalysis>=2.8.0',
     'matplotlib>=3.4.0',
-    'tqdm>=4.60.0'
+    'tqdm>=4.60.0',
+    'dask'
 ]
 
 [project.optional-dependencies]

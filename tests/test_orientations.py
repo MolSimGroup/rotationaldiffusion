@@ -22,6 +22,11 @@ def reference():
     return u
 
 
+@pytest.fixture()
+def broken_universe_in_memory():
+    return mda.Universe(TPR, GRO, in_memory=True)
+
+
 ORIENTATIONS = {
     'default': np.array([
         [ 0.9995, -0.0059,  0.0304],
@@ -81,7 +86,7 @@ class TestOrientations:
         ('name CA', 'name CA'),
         {'mobile': 'name CA', 'reference': 'name CA'}
     ])
-    def test_accepts_selections(self, universe, reference, selection):
+    def test_uses_selections(self, universe, reference, selection):
         ana = rd.orientations.Orientations(
             universe, reference=reference, select=selection, unwrap=False
         ).run()
@@ -107,6 +112,7 @@ class TestOrientations:
         )
 
     def test_custom_weighting(self, universe, reference):
+        # Choose weights such that they correspond to select 'name CA'.
         weights = np.zeros((universe.atoms.n_atoms,))
         weights[universe.atoms.select_atoms('name CA').ids] = 1
         ana = rd.orientations.Orientations(
@@ -117,27 +123,39 @@ class TestOrientations:
             ana.results.orientations[0], ORIENTATIONS['selection'], atol=1e-4
         )
 
-    def test_unwraps_molecules(self):
-        mobile = mda.Universe(TPR, GRO)
-        mobile.select_atoms('protein').wrap()
-        ref = mda.Universe(TPR, GRO)
-        ref.select_atoms('protein').unwrap()
-
-        ana = rd.orientations.Orientations(
-            mobile, reference=ref, select='protein', unwrap=True
-        ).run()
-        assert_allclose(ana.results.orientations[0], np.eye(3), atol=1e-8)
-
-        ana = rd.orientations.Orientations(
-            ref, reference=mobile, select='protein', unwrap=True
-        ).run()
-        assert_allclose(ana.results.orientations[0], np.eye(3), atol=1e-8)
+    def test_unwraps_reference(self, broken_universe_in_memory):
+        ref = broken_universe_in_memory.copy()
+        broken_universe_in_memory.select_atoms('protein').unwrap()
 
         with pytest.raises(AssertionError):
             ana = rd.orientations.Orientations(
-                mobile, reference=ref, select='protein', unwrap=False
+                broken_universe_in_memory, reference=ref, select='protein',
+                unwrap=False, center=False
             ).run()
             assert_allclose(ana.results.orientations[0], np.eye(3), atol=1e-8)
+
+        ana = rd.orientations.Orientations(
+            broken_universe_in_memory, reference=ref, select='protein',
+            unwrap=True, center=False
+        ).run()
+        assert_allclose(ana.results.orientations[0], np.eye(3), atol=1e-8)
+
+    def test_unwraps_mobile(self, broken_universe_in_memory):
+        ref = broken_universe_in_memory.copy()
+        ref.select_atoms('protein').unwrap()
+
+        with pytest.raises(AssertionError):
+            ana = rd.orientations.Orientations(
+                broken_universe_in_memory, reference=ref, select='protein',
+                unwrap=False, center=False
+            ).run()
+            assert_allclose(ana.results.orientations[0], np.eye(3), atol=1e-8)
+
+        ana = rd.orientations.Orientations(
+            broken_universe_in_memory, reference=ref, select='protein',
+            unwrap=True, center=False
+        ).run()
+        assert_allclose(ana.results.orientations[0], np.eye(3), atol=1e-8)
 
     def test_unwrapping_fails(self):
         mobile = mda.Universe(TPR, GRO)
@@ -164,3 +182,31 @@ class TestOrientations:
             rd.orientations.Orientations(
                 ref, reference=mobile, select='protein', unwrap=True
             ).run()
+
+    def test_centering(self, universe):
+        universe.transfer_to_memory()
+        ref = universe.copy()
+        universe.atoms.positions += [10, 0, 0]
+        ref.atoms.positions += [0, 10, 0]
+
+        with pytest.raises(AssertionError):
+            ana = rd.orientations.Orientations(
+                universe, reference=ref, unwrap=False, center=False
+            ).run(stop=1)
+            assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
+
+        ana = rd.orientations.Orientations(
+            universe, reference=ref, unwrap=False, center=True
+        ).run(stop=1)
+        assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
+        assert_allclose(ana.results._rmsd[0], 0, atol=1e-6)
+
+    @pytest.mark.parametrize('backend', ['multiprocessing', 'dask'])
+    def test_parallelization(self, universe, reference, backend):
+        ana = rd.orientations.Orientations(
+            universe, reference=reference, unwrap=False
+        ).run(backend=backend, n_workers=4)
+        assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
+        assert_allclose(
+            ana.results.orientations[0], ORIENTATIONS['default'].T, atol=1e-4
+        )
