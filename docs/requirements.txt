@@ -3,3 +3,4 @@ MDAnalysis
 numpydoc
 sphinxcontrib-bibtex
 sphinx-book-theme
+nbsphinx

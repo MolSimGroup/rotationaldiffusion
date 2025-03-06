@@ -28,6 +28,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.autosummary",
     "sphinxcontrib.bibtex",
+    'nbsphinx'
 ]
 
 templates_path = ["_templates"]
@@ -140,3 +141,6 @@ intersphinx_mapping = {
 # sphinxcontrib-bibtex extension
 bibtex_bibfiles = ['references.bib']
 bibtex_reference_style = "author_year"
+
+# nbsphinx extension
+nbsphinx_execute = 'never'
