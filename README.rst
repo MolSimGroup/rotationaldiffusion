@@ -52,14 +52,15 @@ Citation
 --------
 If you use this package in your research, please cite
 
-Holtbrügge, S.; Schäfer, L. *(in preparation)*
+    \S. Holtbrügge and L. Schäfer *(in preparation)*
 
 Acknowledgement
 ---------------
 This package extends prior work on rotational diffusion by Max Linke:
 
-    Linke, M.; Köfinger, J.; and Hummer, G., **2018**, *J. Phys. Chem. B*,
-    122(21), 5630-5639. `DOI: 10.1021/acs.jpcb.7b11988 <https://doi.org/10.1021/acs.jpcb.7b11988>`_
+    M. Linke *et al.* **(2018)**, *J. Phys. Chem. B*, 122(21),
+    ‚5630-5639.
+    `DOI: 10.1021/acs.jpcb.7b11988 <https://doi.org/10.1021/acs.jpcb.7b11988>`_
 
 License
 -------
