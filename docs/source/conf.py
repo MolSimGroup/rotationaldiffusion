@@ -28,7 +28,8 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.autosummary",
     "sphinxcontrib.bibtex",
-    'nbsphinx'
+    'nbsphinx',
+    'nbsphinx_link'
 ]
 
 templates_path = ["_templates"]

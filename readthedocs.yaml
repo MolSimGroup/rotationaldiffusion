@@ -8,7 +8,6 @@ build:
   tools:
     python: "3.12"
 
-
 python:
   install:
     - method: pip

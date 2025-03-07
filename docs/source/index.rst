@@ -18,7 +18,7 @@ rigid bodies.
    :maxdepth: 2
    :caption: Contents:
    
-   tutorial_link
+   tutorial
    api
 
 
