@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def construct_Q_model(lag_times, diffusion_coeffs, PAF=np.eye(3)):
+def construct_Q(lag_times, diffusion_coeffs, principal_axes=np.eye(3)):
     """
     Quaternion covariance matrix of an ideal Brownian rotor with diffusion tensor D.
 
@@ -19,22 +19,20 @@ def construct_Q_model(lag_times, diffusion_coeffs, PAF=np.eye(3)):
     Q: (N, 3, 3) ndarray
         Quaternion covariance matrix of D.
     """
-    assert np.shape(diffusion_coeffs) == (3,)
-    assert np.shape(PAF) == (3, 3)
-
     Q = np.zeros((3, 3, len(lag_times)))
     for i, j, k in ([0, 1, 2], [1, 2, 0], [2, 0, 1]):
         Q[i, i] = 1 / 4 * (1
            + np.exp(-(diffusion_coeffs[j] + diffusion_coeffs[k]) * lag_times)
            - np.exp(-(diffusion_coeffs[i] + diffusion_coeffs[j]) * lag_times)
            - np.exp(-(diffusion_coeffs[i] + diffusion_coeffs[k]) * lag_times))
-    if not np.allclose(PAF - np.eye(3), np.zeros((3, 3))):
-        Q = np.tensordot(np.tensordot(PAF, PAF, 0), Q, axes=((0, 2), (0, 1)))
+    if not np.allclose(principal_axes - np.eye(3), np.zeros((3, 3))):
+        Q = np.tensordot(np.tensordot(principal_axes, principal_axes, 0), Q,
+                         axes=((0, 2), (0, 1)))
     return np.moveaxis(Q, -1, 0)
 
 
-def construct_Q_model_var(lag_time, diffusion_coeffs, PAF=np.eye(3),
-                          precomputed_Q_model=None):
+def construct_V(lag_time, diffusion_coeffs, principal_axes=np.eye(3),
+                precomputed_Q_model=None):
     """
     Compute the variances of the quaternion covariance matrix Q of an ideal Brownian rotor with diffusion tensor D.
 
@@ -49,10 +47,9 @@ def construct_Q_model_var(lag_time, diffusion_coeffs, PAF=np.eye(3),
 
     Returns
     -------
-    qi2_qj2: (3, 3, N) ndarray
-        Analytical variances of the quaternion covariance matrix corresponding to D.
+    V: (N, 3, 3) ndarray
+        Analytical variances of the quaternion products qi * qj.
     """
-    # TODO: Swap order of axes in output to (N, 3, 3) for consistency.
     # Use Var(q_i * q_j) = <q_i^2 * q_j^2> - <q_i * q_j>^2 =: qi2_qj2 - qij2.
     # Helpers:
     D_av = np.mean(diffusion_coeffs)
@@ -96,15 +93,15 @@ def construct_Q_model_var(lag_time, diffusion_coeffs, PAF=np.eye(3),
             )
 
     # Rotate qi2_qj2 into reference frame.
-    if not np.allclose(PAF - np.eye(3), np.zeros((3, 3))):
-        PAF_2nd_power_shifted = PAF * PAF[(1, 2, 0),]
+    if not np.allclose(principal_axes - np.eye(3), np.zeros((3, 3))):
+        PAF_2nd_power_shifted = principal_axes * principal_axes[(1, 2, 0),]
         PAF_4th_power_shifted = np.multiply(
             PAF_2nd_power_shifted[:, np.newaxis, :],
             PAF_2nd_power_shifted[:, :, np.newaxis]).T
 
         qi2_qj2_rotated = np.tensordot(
-            np.tensordot(PAF ** 2, PAF ** 2, axes=0), qi2_qj2,
-            axes=((0, 2), (0, 1)))
+            np.tensordot(principal_axes ** 2, principal_axes ** 2, axes=0),
+            qi2_qj2, axes=((0, 2), (0, 1)))
         qi2_qj2_rotated += 4 * np.matmul(PAF_4th_power_shifted,
                                          qi2_qj2[(0, 1, 0), (1, 2, 2)])
     else:
@@ -113,5 +110,6 @@ def construct_Q_model_var(lag_time, diffusion_coeffs, PAF=np.eye(3),
     if precomputed_Q_model is not None:
         var = np.moveaxis(qi2_qj2_rotated, -1, 0) - precomputed_Q_model ** 2
     else:
-        var = np.moveaxis(qi2_qj2_rotated, -1, 0) - construct_Q_model(lag_time, diffusion_coeffs, PAF) ** 2
+        var = (np.moveaxis(qi2_qj2_rotated, -1, 0)
+               - construct_Q(lag_time, diffusion_coeffs, principal_axes) ** 2)
     return var
