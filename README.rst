@@ -56,10 +56,11 @@ If you use this package in your research, please cite
 
 Acknowledgement
 ---------------
-This package extends prior work on rotational diffusion by Max Linke:
+This package extends prior work on rotational diffusion by Max Linke
+*et al.*:
 
-    M. Linke *et al.* **(2018)**, *J. Phys. Chem. B*, 122(21),
-    ‚5630-5639.
+    M. Linke, J. Köfinger, and G. Hummer; **(2018)**,
+    *J. Phys. Chem. B*, 122(21), 5630-5639.
     `DOI: 10.1021/acs.jpcb.7b11988 <https://doi.org/10.1021/acs.jpcb.7b11988>`_
 
 License

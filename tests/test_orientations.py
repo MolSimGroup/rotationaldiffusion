@@ -47,8 +47,13 @@ ORIENTATIONS = {
 
 
 class TestOrientations:
+    # NOTE: The default value for the 'weights' option changed to
+    # 'mass'. The existing tests are kept, setting 'weights=None' if
+    # required. In consequence, the 'test_defaults' tests does not test
+    # the current defaults.
     def test_defaults(self, universe):
-        ana = rd.orientations.Orientations(universe, unwrap=False).run()
+        ana = rd.orientations.Orientations(universe, unwrap=False,
+                                           weights=None).run()
         assert len(ana.results.orientations) == universe.trajectory.n_frames
         assert_allclose(ana.results.orientations[0], np.eye(3), atol=1e-8)
         assert_allclose(
@@ -57,7 +62,8 @@ class TestOrientations:
 
     def test_uses_current_frame(self, universe):
         universe.trajectory[-1]  # Set trajectory to last frame.
-        ana = rd.orientations.Orientations(universe, unwrap=False).run()
+        ana = rd.orientations.Orientations(universe, unwrap=False,
+                                           weights=None).run()
         assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
         assert_allclose(
             ana.results.orientations[0], ORIENTATIONS['default'].T, atol=1e-4
@@ -65,7 +71,7 @@ class TestOrientations:
 
     def test_uses_reference(self, universe, reference):
         ana = rd.orientations.Orientations(
-            universe, reference=reference, unwrap=False
+            universe, reference=reference, unwrap=False, weights=None
         ).run()
         assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
         assert_allclose(
@@ -74,7 +80,8 @@ class TestOrientations:
 
     def test_accepts_atomgroups(self, universe, reference):
         ana = rd.orientations.Orientations(
-            universe.atoms, reference=reference.atoms, unwrap=False
+            universe.atoms, reference=reference.atoms, unwrap=False,
+            weights=None
         ).run()
         assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
         assert_allclose(
@@ -88,7 +95,8 @@ class TestOrientations:
     ])
     def test_uses_selections(self, universe, reference, selection):
         ana = rd.orientations.Orientations(
-            universe, reference=reference, select=selection, unwrap=False
+            universe, reference=reference, select=selection, unwrap=False,
+            weights=None
         ).run()
         assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
         assert_allclose(
@@ -104,7 +112,16 @@ class TestOrientations:
 
     def test_mass_weighting(self, universe, reference):
         ana = rd.orientations.Orientations(
-            universe, reference=reference, weights='mass', unwrap=False
+            universe, reference=reference, unwrap=False, weights='mass'
+        ).run()
+        assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
+        assert_allclose(
+            ana.results.orientations[0], ORIENTATIONS['weighted'], atol=1e-4
+        )
+
+    def test_mass_weighting_is_default(self, universe, reference):
+        ana = rd.orientations.Orientations(
+            universe, reference=reference, unwrap=False
         ).run()
         assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
         assert_allclose(
@@ -201,10 +218,31 @@ class TestOrientations:
         assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
         assert_allclose(ana.results._rmsd[0], 0, atol=1e-6)
 
+    def test_centering_weights_has_an_influence(self, universe, reference):
+        ana_mass_weighting = rd.orientations.Orientations(
+            universe, reference=reference, unwrap=False,
+            centering_weights='mass'
+        ).run()
+        ana_equal_weighting = rd.orientations.Orientations(
+            universe, reference=reference, unwrap=False,
+            centering_weights=None
+        ).run()
+
+        # Make sure that the tolerance is not too tight.
+        assert_allclose(ana_mass_weighting.results.orientations,
+                        ana_mass_weighting.results.orientations,
+                        atol=1e-8)
+
+        # Make sure that the centering_weights has an influence.
+        with pytest.raises(AssertionError):
+            assert_allclose(ana_mass_weighting.results.orientations,
+                            ana_equal_weighting.results.orientations,
+                            atol=1e-8)
+
     @pytest.mark.parametrize('backend', ['multiprocessing', 'dask'])
     def test_parallelization(self, universe, reference, backend):
         ana = rd.orientations.Orientations(
-            universe, reference=reference, unwrap=False
+            universe, reference=reference, unwrap=False, weights=None
         ).run(backend=backend, n_workers=4)
         assert_allclose(ana.results.orientations[-1], np.eye(3), atol=1e-8)
         assert_allclose(

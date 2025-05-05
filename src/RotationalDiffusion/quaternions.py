@@ -2,7 +2,9 @@ import numpy as np
 
 
 def invert_quat(quats):
-    """Invert quaternions q to q^{-1} by complex conjugation."""
+    """Invert quaternions q to q^{-1} by complex conjugation.
+
+    WARNING: only valid for unit quaternions."""
     return quats * [1, -1, -1, -1]
 
 

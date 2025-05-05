@@ -43,9 +43,9 @@ class Orientations(AnalysisBase):
     """
     _analysis_algorithm_is_parallelizable = True
 
-    def __init__(self, mobile, reference=None, select='all', weights=None,
-                 center=True, unwrap=True, verify_match=True, tol_mass=0.1,
-                 strict=True, verbose=False):
+    def __init__(self, mobile, reference=None, select='all', weights='mass',
+                 center=True, centering_weights='weights', unwrap=True,
+                 verify_match=True, tol_mass=0.1, strict=True, verbose=False):
         """ Parameters
         ----------
         mobile : AtomGroup or Universe
@@ -72,7 +72,7 @@ class Orientations(AnalysisBase):
             with keywords `'mobile'` and `'reference'`. The selections
             must yield a one-to-one mapping of atoms in `reference` to
             atoms in `mobile`.
-        weights : None or 'mass' or :any:`array_like`, default: None
+        weights : None or 'mass' or :any:`array_like`, default: `'mass'`
             Weights to be used for the analysis. Options include:
 
             - None: use equal weights
@@ -80,9 +80,18 @@ class Orientations(AnalysisBase):
             - :any:`array_like`: use custom weights (must match the
             number of atoms in the selection)
 
+            Separate weights may be chosen for the centering step using
+            the 'centering_weights' option.
         center : bool, default: :any:`True`
             Center molecules. Only deactivate if molecules are already
             centered.
+        centering_weights : 'weights' or None or 'mass' or :any:`array_like`, default: 'weights'
+            Weights to be used for centering. This option determines
+            which kind of center is used. By default, the 'weights'
+            option is used, which defaults to 'mass' in turn. Then,
+            the obtained orientations describe rotations around the
+            center-of-mass. Specifying the None option here corresponds
+            to rotations around the center-of-geometry.
         unwrap : bool, default: :any:`True`
             Unwrap molecules to repair broken structures due to periodic
             boundary conditions.
@@ -140,6 +149,13 @@ class Orientations(AnalysisBase):
         )
 
         self.weights = util.get_weights(self._ref_atoms, weights)
+
+        if centering_weights == 'weights':
+            self.centering_weights = self.weights
+        else:
+            self.centering_weights = util.get_weights(self._ref_atoms,
+                                                      centering_weights)
+
         self._center = center
         self._unwrap = unwrap
 
@@ -157,7 +173,7 @@ class Orientations(AnalysisBase):
 
         # Center the reference.
         if self._center:
-            self._ref_center = self._ref_atoms.center(self.weights)
+            self._ref_center = self._ref_atoms.center(self.centering_weights)
             self._ref_coordinates -= self._ref_center
 
         # Allocate an array for storing the orientation matrices.
@@ -172,7 +188,7 @@ class Orientations(AnalysisBase):
 
         # Remove translation.
         if self._center:
-            mobile_center = self._mobile_atoms.center(self.weights)
+            mobile_center = self._mobile_atoms.center(self.centering_weights)
             self._mobile_atoms.positions -= mobile_center
 
         # Compute best-fit rotation matrix.
