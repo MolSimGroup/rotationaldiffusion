@@ -2,7 +2,7 @@ import numpy as np
 from tqdm.asyncio import tqdm
 
 from .utils import arange_lag_times
-from .fitting import least_squares_fit
+from .fitting import local_minimization
 # from pydiffusion import quaternionsimulation as qsim
 from .correlations import correlate
 
@@ -37,7 +37,7 @@ def compute_uncertainty(D, nrepeats, sim_time_max, lag_time_step, lag_time_max,
             Q_data_mean = np.mean(Q_data, axis=0)
             lag_times = arange_lag_times(Q_data_mean,
                                          sim_time_step*lag_time_step)
-            fit = least_squares_fit(lag_times[lag_time_min:-1],
+            fit = local_minimization(lag_times[lag_time_min:-1],
                                     Q_data_mean[lag_time_min:-1], model=model)
 
             if fit.success:

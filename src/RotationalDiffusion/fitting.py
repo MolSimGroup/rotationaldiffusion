@@ -2,6 +2,7 @@ from copy import copy
 import numpy as np
 import scipy
 from scipy._lib._util import check_random_state
+from scipy.optimize import OptimizeResult
 
 from . import quaternions as qops, instantaneous_tensors, \
     construct_Q, apply_PAF_convention, construct_V
@@ -38,8 +39,8 @@ def _to_params(D, PCS):
 
 
 def guess_init_params(lag_times, Q_data, model='anisotropic'):
-    larger_125 = np.any(np.abs(np.abs(Q_data)) > 0.1, axis=(0, 1))
-    ndx = np.argmax(larger_125) if larger_125.any() else -1
+    indices = np.nonzero(np.all(np.abs(Q_data) < 0.1, axis=(1, 2)))[0]
+    ndx = 0 if indices.size == 0 else indices[-1]
     diff_coeffs_init, PCS = instantaneous_tensors(lag_times[ndx], Q_data[ndx])
 
     # Define initial parameter set.
@@ -56,22 +57,15 @@ def guess_init_params(lag_times, Q_data, model='anisotropic'):
     return _to_params(diff_params_init, PCS)
 
 
-def _chi2_PCS(params, lag_times, Q_data, weights=1):
+def chi2_PCS(params, lag_times, Q_data, weights=1):
     diffusion_coeffs, PCS = _to_D_and_PCS(params)
     model = construct_Q(lag_times, diffusion_coeffs)
     data = np.einsum('im,tmn,jn->tij', PCS, Q_data, PCS)
     residuals = (model - data) ** 2 * weights
-    return np.mean(residuals[:, (0, 1, 2, 0, 0, 1), (0, 1, 2, 1, 2, 2)])
+    return np.sum(residuals[:, (0, 1, 2, 0, 0, 1), (0, 1, 2, 1, 2, 2)])
 
 
-def _chi2_BODY(params, lag_times, Q_data, weights=1):
-    diffusion_coeffs, PCS = _to_D_and_PCS(params)
-    model = construct_Q(lag_times, diffusion_coeffs, PCS)
-    residuals = (model - Q_data) ** 2 * weights
-    return np.mean(residuals[:, (0, 1, 2, 0, 0, 1), (0, 1, 2, 1, 2, 2)])
-
-
-def _chi2_BODY_variance_weights(params, lag_times, Q_data, weights=1):
+def chi2_BODY_weigh_by_variance(params, lag_times, Q_data, weights=1):
     diffusion_coeffs, PCS = _to_D_and_PCS(params)
     model = construct_Q(lag_times, diffusion_coeffs, PCS)
     var = construct_V(lag_times, np.array(diffusion_coeffs), PCS)
@@ -79,20 +73,8 @@ def _chi2_BODY_variance_weights(params, lag_times, Q_data, weights=1):
     return np.sum(residuals[:, (0, 1, 2, 0, 0, 1), (0, 1, 2, 1, 2, 2)])
 
 
-def optimize(params_init, constraints, lag_times, Q_data, tol=1e-10,
-             maxiter=1000):
-    # Deprecated
-    res = scipy.optimize.minimize(_chi2_PCS, params_init, tol=tol,
-                                  args=(lag_times, Q_data),
-                                  constraints=constraints,
-                                  method='trust-constr',
-                                  options={'disp': False,
-                                           'maxiter': maxiter})
-    return res
-
-
 def local_minimization(lag_times, Q_data, weights=1, model='anisotropic',
-                       chi2_func=_chi2_PCS, D_init=None,
+                       chi2_func=chi2_PCS, D_init=None,
                        PCS_init=None, tol=1e-10, max_iter=1000):
     """Local optimization of diffusion coefficients and principal axes
     using a least-squares fitting procedure."""
@@ -146,83 +128,6 @@ def local_minimization(lag_times, Q_data, weights=1, model='anisotropic',
     return res
 
 
-def least_squares_fit(lag_times, Q_data, model='anisotropic',
-                      tol=1e-10, maxiter=1000, tmp=None):
-    # Deprecated
-    params_init = guess_init_params(lag_times, Q_data, model)
-
-    # Constrain PAF-quaternion to norm 1 (to make it a rotational quaternion).
-    def unit_quaternion_constraint(params):
-        return np.sum(np.square(params[-4:])) - 1
-    constraints = [{'type': 'eq', 'fun': unit_quaternion_constraint}]
-
-    # Main optimization step.
-    if model != 'semi-isotropic':
-        res = optimize(params_init, constraints, lag_times, Q_data, tol=tol,
-                       maxiter=maxiter)
-        res.shape = 'triaxial' if model == 'anisotropic' else 'spherical'
-    else:
-        # Fit prolate model.
-        constraints_prolate = constraints + [{'type': 'ineq',
-                                              'fun': lambda x: x[1]-x[0]}]
-        res_prolate = optimize(params_init, constraints_prolate, lag_times,
-                               Q_data, tol=tol, maxiter=maxiter)
-
-        # Fit oblate model.
-        constraints_oblate = constraints + [{'type': 'ineq',
-                                              'fun': lambda x: x[0]-x[1]}]
-        params_init[0], params_init[1] = params_init[1], params_init[0]
-        res_oblate = optimize(params_init, constraints_oblate, lag_times,
-                              Q_data, tol=tol, maxiter=maxiter)
-
-        # Select best fit.
-        if res_prolate.fun < res_oblate.fun:
-            res = res_prolate
-            res.shape = 'prolate'
-        else:
-            res = res_oblate
-            res.shape = 'oblate'
-
-        if tmp == 'prolate':
-            res = res_prolate
-            res.shape = 'prolate'
-        elif tmp == 'oblate':
-            res = res_oblate
-            res.shape = 'oblate'
-
-    # Check that result is converged.
-    # assert res.success, f"The optimization failed after {res.nit} iterations."
-    res.model = model
-
-    # Convert parameters back to D and PAF.
-    # res.D = np.float_power(10, res.x[diff_params_indices,])
-    # res._PAF = qops.quat2rotmat(res.x[-4:])
-    D, PAF = _to_D_and_PCS(res.x)
-    res.D = np.array(D)
-    res._PAF = PAF
-
-    # Sort D (and PAF accordingly, only anisotropic model).
-    if model == 'anisotropic':
-        res._PAF = res._PAF[np.argsort(res.D)]
-        res.D = np.sort(res.D)
-
-    # Apply PAF convention.
-    res._PAF = apply_PAF_convention(res._PAF)
-
-    # Store rotational axes.
-    match model:
-        case 'anisotropic':
-            res.rotation_axes = res._PAF
-        case 'semi-isotropic':
-            res.rotation_axes = res._PAF[2]
-        case 'isotropic':
-            res.rotation_axes = None
-
-    # TODO: Compute anisotropy.
-    # TODO: manually test optimizer on huge variety of Ds and PAFs.
-    return res
-
-
 def _construct_generator(start, stop, step):
     cond = min if step > 0 else max
     start -= step
@@ -236,33 +141,39 @@ def _metropolis(dE, beta):
 
 
 def global_optimization(lag_times, Q_data, weights=1,
-                        chi2_func=_chi2_PCS, D_init=None, PCS_init=None,
+                        chi2_func=chi2_PCS, D_init=None, PCS_init=None,
                         seed=None, beta_params=(0.1, 20.0, 0.05),
-                        D_scale_params=(0.5, 0.05, -0.005), eps=1,
+                        D_scale_params=(0.5, 0.05, -0.005),
                         angle_params=(90.0, 1.0, -0.5), max_iter=1000,
-                        success_iter=5, switch_freq=20):
+                        switch_freq=20, use_relative_energy=True):
     """Global optimization of diffusion coefficients and principal axes
     using a simulated annealing algorithm."""
-    # Initialize random state.
-    rng = check_random_state(seed)
 
     # Get initial parameters.
     if D_init:
         D_current = D_init
-        PCS_current = np.eye((3, 3)) if PCS_init is None else PCS_init
+        PCS_current = np.eye(3) if PCS_init is None else PCS_init
         params_init = _to_params(D_current, PCS_current)
     else:
         params_init = guess_init_params(lag_times, Q_data, model='anisotropic')
         D_current, PCS_current = _to_D_and_PCS(params_init)
-    chi2_current = chi2_func(params_init, lag_times, Q_data, weights=weights)
-    global_chi2_min = chi2_current
-    global_D_opt = D_current
-    global_PCS_opt = PCS_current
 
+    # Initialize random state and counters.
+    rng = check_random_state(seed)
+    chi2_current = chi2_func(params_init, lag_times, Q_data, weights=weights)
+    no_improvement_count = 0
+    update_count = 0
+
+    # Initialize generators.
     beta_gen = _construct_generator(*beta_params)
     D_scale_gen = _construct_generator(*D_scale_params)
     angle_gen = _construct_generator(*angle_params)
-    no_improvement_count = 0
+
+    # Store results.
+    global_chi2_min = chi2_current
+    global_D_opt = D_current
+    global_PCS_opt = PCS_current
+    res = OptimizeResult
 
     # Main annealing loop. Start with optimizing D.
     mode = 'D'
@@ -270,13 +181,12 @@ def global_optimization(lag_times, Q_data, weights=1,
         if mode == 'D':
             scale = next(D_scale_gen) * np.array(D_current)
             _D_new = D_current + scale * rng.uniform(-0.5, 0.5, size=3)
-            _PCS_new = copy(PCS_current) #[np.argsort(_D_new)]
-            _D_new = np.sort(_D_new)[::-1]
+            _PCS_new = copy(PCS_current)
+            _D_new = np.sort(_D_new)
         elif mode == 'PCS':
             max_angle = np.deg2rad(next(angle_gen))
             angle = rng.uniform(0, max_angle)
-            axis = rng.uniform(-1, 1, 3)
-            axis /= np.linalg.norm(axis)
+            axis = rng.normal(size=3)
             quat = np.array([np.cos(angle/2), *np.sin(angle/2) * axis])
             rotation = qops.quat2rotmat(quat)
             _PCS_new = np.dot(PCS_current, rotation)
@@ -286,28 +196,23 @@ def global_optimization(lag_times, Q_data, weights=1,
         _chi2_new = chi2_func(_params_new, lag_times, Q_data, weights=weights)
 
         # Apply Metropolis criterion.
-        dE = _chi2_new - chi2_current
         beta = next(beta_gen)
+        dE = _chi2_new - chi2_current
+        if use_relative_energy:
+            dE /= chi2_current
+
         if rng.uniform(0, 1) < _metropolis(dE, beta):
             # Accept the new params.
             D_current, PCS_current = _to_D_and_PCS(_params_new)
             chi2_current = _chi2_new
-        elif np.abs(dE) < eps * chi2_current:
-            # Reject and increment rejection counter.
-            no_improvement_count += 1
-        else:
-            # Reject and reset rejection counter, bc. change was too large.
-            no_improvement_count = 0
-
-        # Check for convergence.
-        if no_improvement_count > success_iter:
-            break
 
         # Change between modes.
         if (i + 1) % switch_freq == 0:
             mode = 'PCS' if mode == 'D' else 'D'
 
+        # Update global minimum.
         if chi2_current < global_chi2_min:
+            update_count += 1
             global_chi2_min = chi2_current
             global_D_opt = D_current
             global_PCS_opt = PCS_current
