@@ -1,19 +1,45 @@
+"""
+This module provides auxiliary functions for operations on unit
+quaternions. Each quaternion is represented by a numpy array with four
+elements, :math:`(w, x, y, z)`, where :math:`w` is the scalar (real)
+part and :math:`(x, y, z)` is the vector (imaginary) part. All functions
+can operate on arrays of quaternions.
+
+This is an auxiliary module. Hence, the functions are not imported into
+the main name space of RotationalDiffusion. To access them, we recommend
+importing this module as follows:
+
+>>> from RotationalDiffusion import quaternions as qops
+"""
 import numpy as np
 
 
-def invert_quat(quats):
-    """Invert quaternions q to q^{-1} by complex conjugation.
+def conjugate(quats):
+    """Complex conjugation of quaternions.
 
-    WARNING: only valid for unit quaternions."""
-    return quats * [1, -1, -1, -1]
+    For unit quaternions :math:`q`, the complex conjugate is also the
+    inverse :math:`q^{-1}`.
+
+    Parameters
+    ----------
+    quats : (..., 4) array_like
+        Quaternions to conjugate.
+
+    Returns
+    -------
+    quats_conjugated : (..., 4) ndarray
+        Conjugated quaternions.
+    """
+    return np.array(quats) * [1, -1, -1, -1]
 
 
 def rotmat2quat(rotmats):
     """Convert 3D rotation matrices to their quaternion representation.
 
-    Implementation of the Bar-Itzhack algorithm [1, 2], which determines
-    the optimal unit quaternion corresponding to the orthogonal
-    rotation matrix closest to the input matrix.
+    Implementation of the Bar-Itzhack
+    algorithm,\ :footcite:ps:`bar-itzhack2000,wiki-bar-itzhack` which
+    determines the optimal unit quaternion corresponding to the
+    orthogonal rotation matrix closest to the input matrix.
 
     Parameters
     ----------
@@ -23,15 +49,11 @@ def rotmat2quat(rotmats):
     Returns
     -------
     quats : (..., 4) ndarray
-        Quaternions in order (w, x, y, z).
+        Quaternions.
 
     References
     ----------
-    [1] Bar-Itzhack, 2000, J. Guid. Control. Dyn., "New Method for
-    Extracting the Quaternion from a Rotation Matrix",
-    doi: 10.2514/2.4654 .
-    [2] https://en.wikipedia.org/wiki/Rotation_matrix#Quaternion
-    (17th October 2023).
+    .. footbibliography::
     """
     # Initialize matrix K3 (see [1, 2]).
     # Matrix indices are row major here, but column major on Wikipedia.
@@ -59,7 +81,7 @@ def rotmat2quat(rotmats):
     quats = quats[..., [3, 0, 1, 2]]
 
     # Prefer quaternions with rotation angles <= pi.
-    quats = reduce_quat_angle(quats)
+    quats = limit_angle(quats)
     return quats
 
 
@@ -69,12 +91,12 @@ def quat2rotmat(quats):
 
     Parameters
     ----------
-    quats: (..., 4) array_like
-        Quaternions in order (q, x, y, z)
+    quats : (..., 4) array_like
+        Quaternions to be converted to rotational matrices.
 
     Returns
     -------
-    rotmats: (..., 3, 3) ndarray
+    rotmats : (..., 3, 3) ndarray
         Rotational matrices.
     """
     quats = np.moveaxis(quats, -1, 0)
@@ -88,56 +110,68 @@ def quat2rotmat(quats):
     return rotmats
 
 
-def reduce_quat_angle(quats):
+def limit_angle(quats):
     """
-    Reduce rotation angles in (pi, 2pi] to [0, pi).
+    Limit the rotation angle to the interval :math:`[0, \pi]`.
 
-    Two quaternions q and -q describe the same rotation. If q describes
-    the rotation by alpha around some axis, -q describes the counter
-    rotation by 2pi-alpha. If alpha is in (pi, 2pi], then 2pi-alpha is
-    in [0, pi) and vice versa. Since Re(q) = w = sin(alpha/2),
-    alpha in (pi, 2pi] <==> w < 0 and alpha in [0, pi) <==> w >= 0.
-
-    This function returns the quaternions with angles in [0, pi]. Input
-    quaternions q with angles already in [0, pi] are returned directly.
-    Otherwise, -q is returned to reduce the rotation angle from
-    (pi, 2pi] to [0, pi).
+    Describing rotations with quaternions is ambiguous, because two
+    quaternions :math:`q` and :math:`-q` describe the same rotation in
+    clockwise and counter-clockwise direction, respectively. To remove
+    this ambiguity, the rotation angle is limited by convention to the
+    interval :math:`[0, \pi]`. In other words, if the angle of an input
+    quaternion :math:`q` is beyond this interval, i.e., it is is in
+    :math:`(\pi, 2\pi)`, then :math:`-q` is returned. Otherwise, if
+    the angle is already in :math:`[0, \pi]`, then :math:`q` is returned
+    without modification.
 
     Parameters
     ----------
     quats : (..., 4) ndarray
-        Array of quaternions.
+        Quaternions.
 
     Returns
     -------
-    quats_reduced : (..., 4) ndarray
-        Array of quaternions with rotation angles reduced to <= pi.
+    quats_limited : (..., 4) ndarray
+        Quaternions with rotation angles limited to :math:`[0, \pi]`.
     """
-    quats_reduced = np.copy(quats)
-    quats_reduced[quats_reduced[..., 0] < 0] *= -1
-    return quats_reduced
+    quats_limited = np.copy(quats)
+    quats_limited[quats_limited[..., 0] < 0] *= -1
+    return quats_limited
 
 
-def multiply_quats(q1, q2):
+def multiply(q1, q2):
     """
-    Compute Hamilton product (of arrays) of quaternions q1 and q2.
+    Compute the Hamilton product (of arrays) of quaternions :math:`q_1`
+    and :math:`q_2`.
+
+    The Hamilton product\ :footcite:`wiki-hamilton-product`
+    of two quaternions
+    :math:`q_1 = w_1 + x_1 \cdot i + y_1 \cdot j + z_1 \cdot k` and
+    :math:`q_2 = w_2 + x_2 \cdot i + y_2 \cdot j + z_2 \cdot k` is
+
+    .. math::
+
+        q_1 \cdot q_2 \\quad = \\quad
+              &(w_1 \cdot w_2 - x_1 \cdot x_2 - y_1 \cdot y_2 - z_1 \cdot z_2) \\\\
+            + &(w_1 \cdot x_2 + x_1 \cdot w_2 + y_1 \cdot z_2 - z_1 \cdot y_2) \cdot i \\\\
+            + &(w_1 \cdot y_2 - x_1 \cdot z_2 + y_1 \cdot w_2 + z_1 \cdot x_2) \cdot j \\\\
+            + &(w_1 \cdot z_2 + x_1 \cdot y_2 - y_1 \cdot x_2 + z_1 \cdot w_2) \cdot k .
 
     Parameters
     ----------
     q1, q2 : (..., 4) ndarray
         Input arrays to be multiplied, must be broadcastable to a common
-        shape. The last dimension must contain quaternions in order
-        (w, x, y, z).
+        shape.
 
     Returns
     -------
     q_prod : (..., 4) ndarray
-        The pairwise Hamilton product of quaternions q1 and q2.
+        The pairwise Hamilton products of quaternions in :math:`q_1` and
+        :math:`q_2`.
 
     References
     ----------
-    [1] https://en.wikipedia.org/wiki/Quaternion#Hamilton_product
-    (26th October 2023).
+    .. footbibliography::
     """
     w1, x1, y1, z1 = np.moveaxis(q1, -1, 0)
     w2, x2, y2, z2 = np.moveaxis(q2, -1, 0)
