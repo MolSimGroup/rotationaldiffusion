@@ -17,10 +17,11 @@ rigid bodies.
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-   
+
    tutorial
    api
 
+.. bibliography::
 
 Indices and tables
 ==================
@@ -28,4 +29,5 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
 

@@ -4,5 +4,8 @@ API Documentation
 .. toctree::
    :maxdepth: 1
 
-   pages/orientations
-   pages/quaternions
+   api/orientations
+   api/correlations
+   api/fitting
+   api/quaternions
+
