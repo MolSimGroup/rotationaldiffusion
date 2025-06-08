@@ -144,19 +144,6 @@ def multiply(q1, q2):
     Compute the Hamilton product (of arrays) of quaternions :math:`q_1`
     and :math:`q_2`.
 
-    The Hamilton product\ :footcite:`wiki-hamilton-product`
-    of two quaternions
-    :math:`q_1 = w_1 + x_1 \cdot i + y_1 \cdot j + z_1 \cdot k` and
-    :math:`q_2 = w_2 + x_2 \cdot i + y_2 \cdot j + z_2 \cdot k` is
-
-    .. math::
-
-        q_1 \cdot q_2 \\quad = \\quad
-              &(w_1 \cdot w_2 - x_1 \cdot x_2 - y_1 \cdot y_2 - z_1 \cdot z_2) \\\\
-            + &(w_1 \cdot x_2 + x_1 \cdot w_2 + y_1 \cdot z_2 - z_1 \cdot y_2) \cdot i \\\\
-            + &(w_1 \cdot y_2 - x_1 \cdot z_2 + y_1 \cdot w_2 + z_1 \cdot x_2) \cdot j \\\\
-            + &(w_1 \cdot z_2 + x_1 \cdot y_2 - y_1 \cdot x_2 + z_1 \cdot w_2) \cdot k .
-
     Parameters
     ----------
     q1, q2 : (..., 4) ndarray
@@ -168,6 +155,21 @@ def multiply(q1, q2):
     q_prod : (..., 4) ndarray
         The pairwise Hamilton products of quaternions in :math:`q_1` and
         :math:`q_2`.
+
+    Notes
+    -----
+    The Hamilton product\ :footcite:`wiki-hamilton-product` of two
+    quaternions
+    :math:`q_1 = w_1 + x_1 \cdot i + y_1 \cdot j + z_1 \cdot k` and
+    :math:`q_2 = w_2 + x_2 \cdot i + y_2 \cdot j + z_2 \cdot k` is
+
+    .. math::
+
+        q_1 \cdot q_2 \\quad = \\quad
+              &(w_1 \cdot w_2 - x_1 \cdot x_2 - y_1 \cdot y_2 - z_1 \cdot z_2) \\\\
+            + &(w_1 \cdot x_2 + x_1 \cdot w_2 + y_1 \cdot z_2 - z_1 \cdot y_2) \cdot i \\\\
+            + &(w_1 \cdot y_2 - x_1 \cdot z_2 + y_1 \cdot w_2 + z_1 \cdot x_2) \cdot j \\\\
+            + &(w_1 \cdot z_2 + x_1 \cdot y_2 - y_1 \cdot x_2 + z_1 \cdot w_2) \cdot k .
 
     References
     ----------
