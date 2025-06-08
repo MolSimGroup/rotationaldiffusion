@@ -1,8 +1,9 @@
 """
 This module provides an MDAnalysis-based class for extracting the
 orientations of molecular structures from MD trajectories. The
-orientations are the optimal rotation matrices that align a trajectory
-frame to a reference structure.
+orientation is the optimal rotation of the molecule with respect to a
+reference structure. "Optimal" means that the rotation minimizes the
+RMSD between both structures.
 """
 from copy import copy
 import warnings
@@ -20,12 +21,24 @@ class Orientations(AnalysisBase):
     r"""Determines the orientation of a molecular structure along the
     trajectory.
 
-    This class calculates the optimal rotation matrices that align each
-    frame of a trajectory to a reference structure after removing
-    translation. If no reference structure is provided, the analysis
-    will use the current trajectory frame of `mobile`. A (sub-)structure
-    can be selected for the analysis, e.g., one molecule out of many, or
-    the backbone of a protein.
+    This class calculates the optimal rotations that minimize the RMSD
+    between each trajectory frame and a reference structure after
+    removing translation. If the reference structure is not explicitly
+    specified, the analysis will use the current trajectory frame of
+    ``mobile`` as the reference. (Sub-)structures of both the ``mobile``
+    and ``reference`` trajectories can be selected for the analysis
+    using standard `MDAnalysis selection language
+    <https://userguide.mdanalysis.org/stable/selections.html>`_.
+    The selected :class:`AtomGroup <MDAnalysis.core.groups.AtomGroup>`
+    is centered before the optimal rotations are calculated, which are
+    collected in the ``results.orientations`` attribute of this class.
+    Centering may be turned off to speed up the calculation, but
+    therefore the trajectories must already be centered.
+
+    Prior to the main analysis step, periodic boundary conditions are
+    treated by unwrapping the trajectory. The analysis is significangly
+    faster when unwrapping is turned off, but therefore the trajectories
+    must already be unwrapped.
 
     Parameters
     ----------
@@ -35,63 +48,56 @@ class Orientations(AnalysisBase):
         The reference structure.
     select : str or tuple or dict, default: `'all'`
         Selection string(s) defining the  :class:`AtomGroup
-        <MDAnalysis.core.groups.AtomGroup>` to be used for the
-        analysis. The selection must result in identical numbers of
-        atoms in both mobile and reference. Options include:
-
-        - A single string: The same selection is applied to both
-        mobile and reference.
-        - A 2-tuple of strings: (mobile_selection,
-        reference_selection)
-        - A dictionary: {'mobile': 'mobile_selection', 'reference':
-        'reference_selection'}
-
-        Must follow the `MDAnalysis Selection Syntax
-        <https://userguide.mdanalysis.org/stable/selections.html>`_.
-        To pass separate selection strings to `mobile` and
-        `reference`, provide a 2-tuple of strings or a dictionary
-        with keywords `'mobile'` and `'reference'`. The selections
-        must yield a one-to-one mapping of atoms in `reference` to
-        atoms in `mobile`.
+        <MDAnalysis.core.groups.AtomGroup>`\ (s) to be used for the
+        analysis. The string(s) must follow the `MDAnalysis selection
+        syntax
+        <https://userguide.mdanalysis.org/stable/selections.html>`_ . If
+        a single string is provided, it is applied to both ``mobile``
+        and ``reference``. To apply different selections, specify a
+        2-:any:`tuple` of selection strings; the first string is applied
+        to ``mobile``, the second to ``reference``. Alternatively,
+        specify a dictionary with the keys `'mobile'` and `'reference'`
+        mapped to selection strings for ``mobile`` and ``reference``.
+        After the selection has been applied, there must be a
+        one-to-one correspondence of atoms in ``mobile`` to atoms in
+        ``reference``.
     weights : None or 'mass' or :any:`array_like`, default: `'mass'`
-        Weights to be used for the analysis. Options include:
-
-        - None: use equal weights
-        - `'mass'`: use masses defined in `reference`
-        - :any:`array_like`: use custom weights (must match the
-        number of atoms in the selection)
-
-        Separate weights may be chosen for the centering step using
-        the 'centering_weights' option.
+        Weights to be used for determining the orientations. If
+        :any:`None`, use equal weights. If `'mass'`, use the atom masses
+        defined in
+        ``reference`` (default). Use custom weights by providing an
+        :any:`array_like`, which must contain one weight for each
+        selected atom.
     center : bool, default: :any:`True`
         Center molecules. Only deactivate if molecules are already
         centered.
     centering_weights : 'weights' or None or 'mass' or :any:`array_like`, default: 'weights'
-        Weights to be used for centering. This option determines
-        which kind of center is used. By default, the 'weights'
-        option is used, which defaults to 'mass' in turn. Then,
-        the obtained orientations describe rotations around the
-        center-of-mass. Specifying the None option here corresponds
-        to rotations around the center-of-geometry.
+        Weights to be used for centering. If `'weights'`, the same
+        weights are used as specified in the ``weights`` option
+        (default). Otherwise, custom weights can be specified (see
+        ``weights`` option). If masses are used for centering, the
+        obtained orientations describe rotations around the
+        center-of-mass. Similarly, if equal weights are used here, the
+        orientations describe rotations around the center-of-geometry.
     unwrap : bool, default: :any:`True`
         Unwrap molecules to repair broken structures due to periodic
-        boundary conditions.
+        boundary conditions. Only deactivate if molecules are already
+        whole.
     verify_match : bool, default: :any:`True`
-        Whether to verify the one-to-one atom mapping of `mobile`
-        and `reference` based on the residue names and atom masses
+        Whether to verify the one-to-one atom mapping of ``mobile``
+        and ``reference`` based on the residue names and atom masses
         using :func:`MDAnalysis.analysis.align.get_matching_atoms()
         <MDAnalysis.analysis.align.get_matching_atoms>`.
     tol_mass : float, default: 0.1
-        Tolerance in mass, only used if `verify_match` is set to
-        :any:`True`.
+        Tolerance in mass for identifying identical atoms. Only used if
+        ``verify_match`` is set to :any:`True`.
     strict : bool, default: True
         Only used if `verify_match` is set to :any:`True`. If
         :any:`True`, raise an error if a residue is missing an atom.
         If  :any:`False`, ignore residues with missing atoms in the
         analysis.
     verbose : bool, default: False
-        Set logger to show more information and show detailed
-        progress of the calculation if set to :any:`True`.
+        Show detailed progress if set to :any:`True`.
 
     Attributes
     ----------
@@ -113,19 +119,6 @@ class Orientations(AnalysisBase):
     References
     ----------
     .. footbibliography::
-
-    Examples
-    --------
-    Basic usage with the current frame as reference:
-
-    >>> import MDAnalysis as mda
-    >>> import RotationalDiffusion as rd
-    >>> u = mda.Universe('protein.pdb', 'trajectory.xtc')
-    >>> orient = rd.orientations.Orientations(u, select='backbone')
-    >>> orient.run()
-    >>> # Orientation matrices are now in orient.results.orientations
-    >>> print(orient.results.orientations.shape)
-    (100, 3, 3)  # For a 100-frame trajectory
     """
     _analysis_algorithm_is_parallelizable = True
 
@@ -174,7 +167,7 @@ class Orientations(AnalysisBase):
             self._ref_center = self._ref_atoms.center(self.centering_weights)
             self._ref_coordinates -= self._ref_center
 
-        # Allocate an array for storing the orientation matrices.
+        # Create an array for storing the orientation matrices.
         self.results.orientations = np.zeros((self.n_frames, 3, 3))
         self.results._rmsd = np.zeros((self.n_frames,))
 

@@ -1,5 +1,5 @@
 """
-Tests for the ``orientations`` module.
+Test classes for the RotationalDiffusion.orientations module.
 """
 import pytest
 import numpy as np
