@@ -115,6 +115,9 @@ def correlate(orientations, stop=.1, step=1, do_variance=False,
     .. footbibliography::
     """
     orientations = np.array(orientations)
+    if orientations.shape[-2:] == (3, 3):
+        orientations = qops.rotmat2quat(orientations)
+
     n_frames = orientations.shape[-2]
     if isinstance(stop, float):
         stop = int(n_frames * stop)

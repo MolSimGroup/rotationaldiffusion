@@ -178,6 +178,7 @@ def global_optimization(lag_times, Q_data, weights=1,
     # Main annealing loop. Start with optimizing D.
     mode = 'D'
     for i in range(max_iter):
+        # Switch between optimizing D or PCS every switch_freq steps.
         if mode == 'D':
             scale = next(D_scale_gen) * np.array(D_current)
             _D_new = D_current + scale * rng.uniform(-0.5, 0.5, size=3)

@@ -66,6 +66,12 @@ intersphinx_mapping = {
     "numpy": ('https://numpy.org/doc/stable/', None),
 }
 
+# doctest extension
+doctest_global_setup = """
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='MDAnalysis')
+"""
+
 # numpydoc extension
 numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {

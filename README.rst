@@ -40,8 +40,10 @@ Documentation and Tutorial
 The full documentation is available at:
 https://rotationaldiffusion.readthedocs.io
 
-A comprehensive tutorial demonstrating the main functionalities of the
-package is included in the documentation.
+A slightly older but comprehensive tutorial demonstrating the main
+functionalities of the package is included in the documentation.
+Further, a user guide and more advanced API documentation are currently
+being developed.
 
 Citation
 --------
@@ -51,7 +53,6 @@ If you use this package in your research, please read and cite
     Rotational Diffusion Tensors of Proteins from Molecular Dynamics
     Simulations*, **2025**. bioRxiv, `doi: 10.1101/2025.05.27.656261
     <https://doi.org/10.1101/2025.05.27.656261>`_\ .
-
 
 Author
 ------

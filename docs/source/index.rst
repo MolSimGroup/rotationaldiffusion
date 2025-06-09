@@ -19,6 +19,7 @@ rigid bodies.
    :caption: Contents:
 
    tutorial
+   user_guide
    api
 
 .. bibliography::
