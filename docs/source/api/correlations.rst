@@ -3,16 +3,13 @@ Correlations
 
 .. currentmodule:: RotationalDiffusion.correlations
 
-Compute rotational correlation functions.
+.. automodule:: RotationalDiffusion.correlations
+   :no-members:
 
-This module calculates correlation functions from orientation data, which form
-the basis for analyzing rotational diffusion behavior and extracting diffusion
-coefficients.
+Functions
+---------
 
 .. autosummary::
    :toctree: generated/
 
-.. automodule:: RotationalDiffusion.correlations
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   correlate

@@ -1,10 +1,27 @@
+"""
+This module provides a function for computing rotational correlation
+functions.
+"""
 import functools
 import multiprocessing as mp
 
 import numpy as np
 from tqdm.asyncio import tqdm
-
 from . import quaternions as qops
+
+
+def _get_lag_indices(n_frames, stop, step):
+    if stop == 'auto':
+        # By default, compute lag up to 10% of the trajectory length.
+        stop = 0.1
+    if isinstance(stop, float):
+        stop = int(n_frames * stop)
+    if not isinstance(stop, int):
+        raise ValueError('`stop` must be either `auto` or int or float.')
+    elif stop >= n_frames:
+        raise ValueError('`stop` must be less than the number of '
+                         'trajectory frames.')
+    return np.arange(step, stop, step)
 
 
 def _correlate_i(quaternions, quaternions_inv, ndx, do_variance=False):
@@ -12,7 +29,7 @@ def _correlate_i(quaternions, quaternions_inv, ndx, do_variance=False):
     time."""
     q1 = quaternions[..., :-ndx, :]
     q2 = quaternions_inv[..., ndx:, :]
-    q_corr = qops.multiply_quats(q1, q2)
+    q_corr = qops.multiply(q1, q2)
     Q_not_averaged = np.matmul(q_corr[..., 1:, np.newaxis],
                                q_corr[..., np.newaxis, 1:])
     if do_variance:
@@ -21,33 +38,37 @@ def _correlate_i(quaternions, quaternions_inv, ndx, do_variance=False):
     return Q_not_averaged.mean(axis=-3)
 
 
-def correlate(orientations, stop=None, step=1, do_variance=False,
+def correlate(orientations, stop=.1, step=1, do_variance=False,
               verbose=False):
     # TODO: Update documentation.
-    """Compute six rotational correlation functions, returned as
-    elements of the symmetric quaternion covariance matrix `Q`.
+    """Compute rotational correlation functions from trajectories of
+    orientations.
 
-
-
-    The `orientations` may be passed either as an array of rotational
-    matrices or of quaternions.
-    Rotational matrices will be converted
-    to quaternions under the hood. If passing quaternions directly, the
-    scalar part must be leading. The passed array may have any
-    dimensionality
+    The orientations must be provided as a time series (trajectory) of
+    orientational (unit) quaternions in scalar first convention, i.e.,
+    each quaternion is represented by a numpy array
+    :math:`(w, x, y, z)`, where :math:`w` is the scalar part. If an
+    :any:`array_like` of orientational trajectories is provided, all
+    trajectories are processed at once using fast numpy array
+    operations, which is much quicker than looping over the
+    trajectories.
 
     Parameters
     ----------
-    orientations : ndarray
-        The orientations, represented either as rotational matrices
-        (shape `(..., 3, 3)`), or as quaternions (shape `(..., 4)`).
-    stop : int, optional
-        Maximum lag index.
+    orientations : (..., n_frames, 4) array_like
+        Quaternions representing the orientations, in scalar first
+        convention. The second-to-last dimension must contain the time
+        series of orientations.
+    stop : float or int, default: 0.1
+        Maximum lag time. If :any:`float`, ``stop`` specifies a fraction
+        of the trajectory length (default). If :any:`int`, ``stop``
+        specifies the maximum lag index.
     step : int, default: 1
-
+        Increment of the lag index.
     do_variance : bool, default: False
-
+        Whether to compute the variances of products.
     verbose : bool, default: False
+        Show progress bar if set to :any:`True`.
 
     Returns
     -------
@@ -59,19 +80,41 @@ def correlate(orientations, stop=None, step=1, do_variance=False,
 
     Notes
     -----
+    First, reorientations :math:`q(t, \\tau)` are computed from the
+    provided trajectory of orientations :math:`q(t)` as
 
+    .. math::
+
+        q(t, \\tau) = q(t) \cdot q^{-1}(t + \\tau).
+
+    Second, the covariance matrix of these reorientational quaternions
+    is computed as
+    :math:`{\\bf \\tilde{Q}}_{ij}(\\tau) = \\langle q_i q_j \\rangle_t`.
+    Evidently, :math:`{\\bf \\tilde{Q}}_{ij}(\\tau)` is a matrix of
+    correlation functions. If ``do_variance`` is :any:`True`, the
+
+
+    See :footcite:t:`holtbruegge2025` for more
+    details.
+
+    References
+    ----------
+    .. footbibliography::
     """
-    if orientations.shape[-2:] == (3, 3):
-        orientations = qops.rotmat2quat(orientations)
+    orientations = np.array(orientations)
+    n_frames = orientations.shape[-2]
+    if isinstance(stop, float):
+        stop = int(n_frames * stop)
+    lag_indices = np.arange(step, stop, step)
 
-    stop = int(orientations.shape[-2] / 10) + 1 if stop is None else stop
-    indices = np.arange(step, stop, step)
-    orientations_inv = qops.invert_quat(orientations)
-    Q = np.zeros((indices.size,) + orientations.shape[:-2] + (3, 3))
-    var = np.zeros(Q.shape) if do_variance else None
+    # The inverse of a unit quaternion is its complex conjugate.
+    orientations_inv = qops.conjugate(orientations)
 
-    # TODO (correlate): Parallelize the correlation function.
-    for i, ndx in enumerate(tqdm(indices, disable=not verbose)):
+    Q = np.zeros((lag_indices.size,) + n_frames + (3, 3))
+    if do_variance:
+        var = np.zeros(Q.shape)
+
+    for i, ndx in enumerate(tqdm(lag_indices, disable=not verbose)):
         if do_variance:
             Q[i], var[i] = _correlate_i(orientations, orientations_inv, ndx,
                                         do_variance=do_variance)

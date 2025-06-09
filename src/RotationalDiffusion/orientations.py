@@ -102,7 +102,7 @@ class Orientations(AnalysisBase):
     Attributes
     ----------
     results.orientations : ndarray, shape (n_frames, 3, 3)
-        Orientations represented as an array of matrices.
+        Orientations represented as an array of rotation matrices.
 
     Notes
     -----
