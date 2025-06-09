@@ -4,8 +4,8 @@ import scipy
 from scipy._lib._util import check_random_state
 from scipy.optimize import OptimizeResult
 
-from . import quaternions as qops, instantaneous_tensors, \
-    construct_Q, apply_PAF_convention, construct_V
+from . import quaternions as qops, td_parameters, \
+    quaternion_covariance_matrix, apply_PCS_convention, variance_matrix
 
 
 def _to_D_and_PCS(params):
@@ -41,7 +41,7 @@ def _to_params(D, PCS):
 def guess_init_params(lag_times, Q_data, model='anisotropic'):
     indices = np.nonzero(np.all(np.abs(Q_data) < 0.1, axis=(1, 2)))[0]
     ndx = 0 if indices.size == 0 else indices[-1]
-    diff_coeffs_init, PCS = instantaneous_tensors(lag_times[ndx], Q_data[ndx])
+    diff_coeffs_init, PCS = td_parameters(lag_times[ndx], Q_data[ndx])
 
     # Define initial parameter set.
     match model:
@@ -59,7 +59,7 @@ def guess_init_params(lag_times, Q_data, model='anisotropic'):
 
 def chi2_PCS(params, lag_times, Q_data, weights=1):
     diffusion_coeffs, PCS = _to_D_and_PCS(params)
-    model = construct_Q(lag_times, diffusion_coeffs)
+    model = quaternion_covariance_matrix(lag_times, diffusion_coeffs)
     data = np.einsum('im,tmn,jn->tij', PCS, Q_data, PCS)
     residuals = (model - data) ** 2 * weights
     return np.sum(residuals[:, (0, 1, 2, 0, 0, 1), (0, 1, 2, 1, 2, 2)])
@@ -67,13 +67,13 @@ def chi2_PCS(params, lag_times, Q_data, weights=1):
 
 def chi2_BODY_weigh_by_variance(params, lag_times, Q_data, weights=1):
     diffusion_coeffs, PCS = _to_D_and_PCS(params)
-    model = construct_Q(lag_times, diffusion_coeffs, PCS)
-    var = construct_V(lag_times, np.array(diffusion_coeffs), PCS)
+    model = quaternion_covariance_matrix(lag_times, diffusion_coeffs, PCS)
+    var = variance_matrix(lag_times, np.array(diffusion_coeffs), PCS)
     residuals = (model - Q_data) ** 2 / var
     return np.sum(residuals[:, (0, 1, 2, 0, 0, 1), (0, 1, 2, 1, 2, 2)])
 
 
-def local_minimization(lag_times, Q_data, weights=1, model='anisotropic',
+def local_optimization(lag_times, Q_data, weights=1, model='anisotropic',
                        chi2_func=chi2_PCS, D_init=None,
                        PCS_init=None, tol=1e-10, max_iter=1000):
     """Local optimization of diffusion coefficients and principal axes
@@ -113,7 +113,7 @@ def local_minimization(lag_times, Q_data, weights=1, model='anisotropic',
 
     D, PCS = _to_D_and_PCS(res.x)
     _PCS = PCS[np.argsort(D)]
-    res._PCS = apply_PAF_convention(_PCS)
+    res._PCS = apply_PCS_convention(_PCS)
     res.D = np.sort(D)
 
     match model:

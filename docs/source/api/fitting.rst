@@ -12,5 +12,5 @@ Functions
 .. autosummary::
    :toctree: generated/
 
-   local_minimization
+   local_optimization
    global_optimization

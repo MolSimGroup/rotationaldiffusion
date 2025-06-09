@@ -1,34 +1,17 @@
 """
 This module provides a function for computing rotational correlation
-functions.
+functions from orientation trajectories.
 """
-import functools
-import multiprocessing as mp
-
 import numpy as np
-from tqdm.asyncio import tqdm
+from tqdm.auto import tqdm
 from . import quaternions as qops
 
 
-def _get_lag_indices(n_frames, stop, step):
-    if stop == 'auto':
-        # By default, compute lag up to 10% of the trajectory length.
-        stop = 0.1
-    if isinstance(stop, float):
-        stop = int(n_frames * stop)
-    if not isinstance(stop, int):
-        raise ValueError('`stop` must be either `auto` or int or float.')
-    elif stop >= n_frames:
-        raise ValueError('`stop` must be less than the number of '
-                         'trajectory frames.')
-    return np.arange(step, stop, step)
-
-
-def _correlate_i(quaternions, quaternions_inv, ndx, do_variance=False):
-    """Compute the covariance matrix `Q` for one discrete correlation
-    time."""
-    q1 = quaternions[..., :-ndx, :]
-    q2 = quaternions_inv[..., ndx:, :]
+def _correlate_i(quaternions, quaternions_inv, lag_ndx, do_variance=False):
+    """Compute the rotational correlation functions for one discrete lag
+    index."""
+    q1 = quaternions[..., :-lag_ndx, :]
+    q2 = quaternions_inv[..., lag_ndx:, :]
     q_corr = qops.multiply(q1, q2)
     Q_not_averaged = np.matmul(q_corr[..., 1:, np.newaxis],
                                q_corr[..., np.newaxis, 1:])
@@ -40,12 +23,11 @@ def _correlate_i(quaternions, quaternions_inv, ndx, do_variance=False):
 
 def correlate(orientations, stop=.1, step=1, do_variance=False,
               verbose=False):
-    # TODO: Update documentation.
     """Compute rotational correlation functions from trajectories of
     orientations.
 
     The orientations must be provided as a time series (trajectory) of
-    orientational (unit) quaternions in scalar first convention, i.e.,
+    orientational (unit) quaternions in scalar-first convention, i.e.,
     each quaternion is represented by a numpy array
     :math:`(w, x, y, z)`, where :math:`w` is the scalar part. If an
     :any:`array_like` of orientational trajectories is provided, all
@@ -53,30 +35,64 @@ def correlate(orientations, stop=.1, step=1, do_variance=False,
     operations, which is much quicker than looping over the
     trajectories.
 
+    The maximum lag time can be specified with ``stop``. If ``stop`` is
+    a :any:`float`, then it specifies a fraction of the trajectory
+    length, which is converted into a maximal lag index. For example, if
+    the trajectory contains 1000 frames and ``stop`` is set to 0.1
+    (default), then the correlation function is computed up to 10% of
+    the trajectory length and the maximum lag index is set to 100. If
+    ``stop`` is an :any:`int`, it directly specifies the maximum lag
+    index.
+
+    The computed quaternion covariance matrix contains (ensemble)
+    averages of products of quaternion
+    components, which form six rotational correlation
+    functions.\ :footcite:`holtbruegge2025` If ``do_variance`` is
+    :any:`True`, then also the corresponding variances of products of
+    quaternion components are computed. In that case, a tuple of
+    the quaternion covariance matrix and the variance matrix is
+    returned. However, computing the variances increases the
+    computational time and is seldomly necessary, hence, it is
+    deactivated by default.
+
     Parameters
     ----------
     orientations : (..., n_frames, 4) array_like
         Quaternions representing the orientations, in scalar first
         convention. The second-to-last dimension must contain the time
-        series of orientations.
+        series of quaternions.
     stop : float or int, default: 0.1
         Maximum lag time. If :any:`float`, ``stop`` specifies a fraction
-        of the trajectory length (default). If :any:`int`, ``stop``
-        specifies the maximum lag index.
+        of the trajectory length. If :any:`int`, ``stop`` specifies the
+        maximum lag index.
     step : int, default: 1
         Increment of the lag index.
     do_variance : bool, default: False
-        Whether to compute the variances of products.
+        Whether to compute the variances of correlation matrix elements.
     verbose : bool, default: False
         Show progress bar if set to :any:`True`.
 
     Returns
     -------
-    Q : ndarray, shape (..., N, 3, 3)
-        The quaternion covariance matrix computed at `N` discrete
+    Q : (..., N, 3, 3) ndarray
+        The quaternion covariance matrix computed at :math:`N` discrete
         correlation times.
-    Q_var : ndarray, shape (..., N, 3, 3), optional
-        The variance of `Q`.
+    var : (..., N, 3, 3) ndarray, optional
+        The variance matrix, returned only if ``do_variance`` is
+        :any:`True`.
+
+    Raises
+    ------
+    ValueError
+        If ``stop`` is too large.
+
+    See Also
+    --------
+    RotationalDiffusion.orientations.Orientations
+        MDAnalysis-based class for extracting the orientations of a
+        molecular structure from MD trajectories.
+    RotationalDiffusion.quaternions
+        Quaternion operations used under the hood.
 
     Notes
     -----
@@ -87,15 +103,12 @@ def correlate(orientations, stop=.1, step=1, do_variance=False,
 
         q(t, \\tau) = q(t) \cdot q^{-1}(t + \\tau).
 
-    Second, the covariance matrix of these reorientational quaternions
-    is computed as
+    Second, the covariance matrix of the vector parts of these
+    reorientational quaternions is computed as
     :math:`{\\bf \\tilde{Q}}_{ij}(\\tau) = \\langle q_i q_j \\rangle_t`.
-    Evidently, :math:`{\\bf \\tilde{Q}}_{ij}(\\tau)` is a matrix of
-    correlation functions. If ``do_variance`` is :any:`True`, the
-
-
-    See :footcite:t:`holtbruegge2025` for more
-    details.
+    The resulting matrix :math:`{\\bf \\tilde{Q}}_{ij}(\\tau)` contains
+    six rotational correlation functions. See
+    :footcite:t:`holtbruegge2025` for more details.
 
     References
     ----------
@@ -105,21 +118,28 @@ def correlate(orientations, stop=.1, step=1, do_variance=False,
     n_frames = orientations.shape[-2]
     if isinstance(stop, float):
         stop = int(n_frames * stop)
+    if stop > n_frames:
+        raise ValueError('The maximum lag time must not exceed the '
+                         'trajectory length.')
     lag_indices = np.arange(step, stop, step)
 
     # The inverse of a unit quaternion is its complex conjugate.
     orientations_inv = qops.conjugate(orientations)
 
-    Q = np.zeros((lag_indices.size,) + n_frames + (3, 3))
+    # Create output arrays.
+    output_shape = lag_indices.shape + orientations.shape[:-2] +  (3, 3)
+    Q = np.zeros(output_shape)
     if do_variance:
-        var = np.zeros(Q.shape)
+        var = np.zeros(output_shape)
 
-    for i, ndx in enumerate(tqdm(lag_indices, disable=not verbose)):
+    # TODO: Parallelize this loop.
+    for i, lag_ndx in enumerate(tqdm(lag_indices, disable=not verbose,
+                                     desc='Computing correlations')):
         if do_variance:
-            Q[i], var[i] = _correlate_i(orientations, orientations_inv, ndx,
-                                        do_variance=do_variance)
+            Q[i], var[i] = _correlate_i(orientations, orientations_inv,
+                                        lag_ndx, do_variance=do_variance)
         else:
-            Q[i] = _correlate_i(orientations, orientations_inv, ndx,
+            Q[i] = _correlate_i(orientations, orientations_inv, lag_ndx,
                                 do_variance=do_variance)
 
     if do_variance:
