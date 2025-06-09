@@ -43,32 +43,25 @@ https://rotationaldiffusion.readthedocs.io
 A comprehensive tutorial demonstrating the main functionalities of the
 package is included in the documentation.
 
+Citation
+--------
+If you use this package in your research, please read and cite
+
+    \S. L. Holtbrügge and L. V. Schäfer: *Robust Estimation of
+    Rotational Diffusion Tensors of Proteins from Molecular Dynamics
+    Simulations*, **2025**. bioRxiv, `doi: 10.1101/2025.05.27.656261
+    <https://doi.org/10.1101/2025.05.27.656261>`_\ .
+
+
 Author
 ------
 This package was developed by Simon Holtbrügge. Contact:
 simon.holtbruegge@rub.de.
 
-Citation
---------
-If you use this package in your research, please cite
-
-    \S. Holtbrügge and L. Schäfer *(in preparation)*
-
-Acknowledgement
----------------
-This package extends prior work on rotational diffusion by Max Linke
-*et al.*:
-
-    M. Linke, J. Köfinger, and G. Hummer; **(2018)**,
-    *J. Phys. Chem. B*, 122(21), 5630-5639.
-    `DOI: 10.1021/acs.jpcb.7b11988 <https://doi.org/10.1021/acs.jpcb.7b11988>`_
-
 License
 -------
 This project is licensed under the GNU General Public License v3.0 - see
 the LICENSE file for details.
-
-© Simon Holtbrügge, Lars Schäfer, 2024.
 
   .. |docs| image:: https://readthedocs.org/projects/rotationaldiffusion/badge/?version=latest
     :alt: Documentation Status
