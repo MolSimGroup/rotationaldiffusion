@@ -7,6 +7,16 @@ Orientations
    :no-members:
    :no-inherited-members:
 
+
+Functions
+---------
+
+.. autosummary::
+   :toctree: generated/
+
+   load_gmx_rotmat_output
+
+
 Classes
 -------
 

@@ -1,4 +1,4 @@
-from .orientations import Orientations
+from .orientations import Orientations, load_gmx_rotmat_output
 from .correlations import correlate
 
 from .td_analysis import td_parameters

@@ -1,9 +1,15 @@
 """
-This module provides an MDAnalysis-based class for extracting the
-orientations of molecular structures from MD trajectories. The
-orientation is the optimal rotation of the molecule with respect to a
-reference structure. "Optimal" means that the rotation minimizes the
+The purpose of this module is to determine the orientation of
+a molecular structure along an MD trajectory. The orientation is the
+optimal rotation with respect to a reference structure after treating
+translational motion. "Optimal" means that the rotation minimizes the
 RMSD between both structures.
+
+The orientations can be computed directly from the trajectory using
+an MDAnalysis-based class. Alternatively, the orientations can be
+pre-computed using `gmx rotmat <https://manual.gromacs.org/2025.2/
+onlinehelp/gmx-rotmat.html>`_\ . We provide a convenience function to
+load the output of this external tool into python.
 """
 from copy import copy
 import warnings
@@ -167,7 +173,7 @@ class Orientations(AnalysisBase):
             self._ref_center = self._ref_atoms.center(self.centering_weights)
             self._ref_coordinates -= self._ref_center
 
-        # Create an array for storing the orientation matrices.
+        # Create an array for storing the orientsdation matrices.
         self.results.orientations = np.zeros((self.n_frames, 3, 3))
         self.results._rmsd = np.zeros((self.n_frames,))
 
@@ -246,3 +252,40 @@ class Orientations(AnalysisBase):
         """
         super().run(**kwargs)
         return self
+
+
+def load_gmx_rotmat_output(*files, start=None, stop=None, step=None):
+    """
+    Load orientations obtained using ``gmx rotmat`` from disk.
+
+    Several files can be loaded at once by passing the path to each file
+    as a separate argument. All files must contain the same number of
+    orientations and should have the same time step. The `start`,
+    `stop`, and `step` arguments can be used to load only parts of each
+    file using `numpy slicing <https://numpy.org/doc/stable/user/
+    basics.indexing.html#slicing-and-striding>`_.
+
+    Parameters
+    ----------
+    files: str
+        Paths to the ``gmx rotmat`` output files. Each path should be a
+        separate argument.
+    start, stop : int, optional
+        Index of first and last orientation to load.
+    step : int, optional
+        Number of orientations to skip between each loaded orientation.
+
+    Returns
+    -------
+    orientations : (n_files, n_frames, 3, 3) ndarray
+        Orientations represented as an array of rotational matrices.
+    time : (n_files, n_frames) ndarray
+        Time information of the matrices in ``orientations``.
+    """
+    orientations, time = [], []
+    for file in files:
+        data = np.loadtxt(file, comments=['#', '@'])[start:stop:step]
+        orientations.append(data[:, 1:].reshape(-1, 3, 3))
+        time.append(data[:, 0])
+    orientations, time = np.array(orientations), np.array(time)
+    return orientations, time
