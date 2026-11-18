@@ -7,6 +7,7 @@ from MDAnalysis.analysis.base import AnalysisBase
 def arange_lag_times(Q, timestep):
     return np.arange(1, Q.shape[-3] + 1, 1) * timestep
 
+
 def apply_PCS_convention(PCSs):
     assert PCSs.shape[-2:] == (3, 3)
     PCSs = np.copy(PCSs)
@@ -22,3 +23,23 @@ def apply_PCS_convention(PCSs):
     return PCSs
 
 
+def REF_to_PCS(structure, PCS):
+    """Rotate the reference structure into the PCS.
+
+    The rotation happens in-place returning the altered input object.
+
+    Parameters
+    ----------
+    structure : Universe or AtomGroup
+        The reference structure to be rotated into the PCS.
+    PCS: (3, 3) ndarray
+        The PCS.
+
+    Returns
+    -------
+    Universe or AtomGroup
+        The structure rotated into the PCS.
+    """
+    new_pos = np.einsum('im,nm', PCS, structure.atoms.positions).T
+    structure.atoms.positions = new_pos
+    return structure

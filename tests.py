@@ -18,7 +18,7 @@ class TestQuaternionOperations(unittest.TestCase):
         self.quats_inv = self.rotations.inv().as_quat()[..., (-1, 0, 1, 2)]
 
     def test_invert_quats(self):
-        quats_inv_2test = qops.invert_quat(self.quats)
+        quats_inv_2test = qops.conjugate(self.quats)
         self.assertTrue(np.allclose(self.quats_inv, quats_inv_2test))
 
     def test_rotmat2quat(self):
@@ -31,8 +31,8 @@ class TestQuaternionOperations(unittest.TestCase):
 
     def test_reduce_quat_angle(self):
         quat_2test = np.array([-1, 2, 3, 4])
-        quat_red_2test = qops.reduce_quat_angle(quat_2test)
-        quats_red_2test = qops.reduce_quat_angle(self.quats)
+        quat_red_2test = qops.limit_angle(quat_2test)
+        quats_red_2test = qops.limit_angle(self.quats)
         self.assertTrue(np.allclose(-quat_2test, quat_red_2test))
         self.assertTrue(np.allclose(self.quats_red, quats_red_2test))
 
@@ -48,10 +48,10 @@ class TestQuaternionOperations(unittest.TestCase):
         prod_N_1_ref = prod_N_1_ref.as_quat()[..., (-1, 0, 1, 2)]
         prod_N_N_ref = prod_N_N_ref.as_quat()[..., (-1, 0, 1, 2)]
 
-        prod_1_1_2test = qops.multiply_quats(self.quats[0], self.quats[0])
-        prod_1_N_2test = qops.multiply_quats(self.quats[0], self.quats)
-        prod_N_1_2test = qops.multiply_quats(self.quats, self.quats[0])
-        prod_N_N_2test = qops.multiply_quats(self.quats, self.quats)
+        prod_1_1_2test = qops.multiply(self.quats[0], self.quats[0])
+        prod_1_N_2test = qops.multiply(self.quats[0], self.quats)
+        prod_N_1_2test = qops.multiply(self.quats, self.quats[0])
+        prod_N_N_2test = qops.multiply(self.quats, self.quats)
 
         self.assertTrue(np.allclose(prod_1_1_ref, prod_1_1_2test))
         self.assertTrue(np.allclose(prod_1_N_ref, prod_1_N_2test))
@@ -59,7 +59,7 @@ class TestQuaternionOperations(unittest.TestCase):
         self.assertTrue(np.allclose(prod_N_N_ref, prod_N_N_2test))
 
         # Test that multiplying arrays with N not equal to M elements fails.
-        self.assertRaises(ValueError, qops.multiply_quats,
+        self.assertRaises(ValueError, qops.multiply,
                           self.quats, self.quats[:-2])
 
 
@@ -103,33 +103,33 @@ class TestDiffusionFunctions(unittest.TestCase):
     def test_construct_Q_model(self):
         # Q: Time-dependent quaternion covariance matrix.
         # Compare Favro's equations against own implementation.
-        Q_2test = rd.construct_Q_model(self.t, self.D_diag)
+        Q_2test = rd.quaternion_covariance_matrix(self.t, self.D_diag)
         self.assertEqual(Q_2test.shape, (1, 3, 3))
         self.assertTrue(np.allclose(self.Q_ref, Q_2test))
 
         # Compare in different, random PAF.
-        Q_rot_2test = rd.construct_Q_model(self.t, self.D_diag, self.PAF)
+        Q_rot_2test = rd.quaternion_covariance_matrix(self.t, self.D_diag, self.PAF)
         self.assertEqual(Q_rot_2test.shape, (1, 3, 3))
         self.assertTrue(np.allclose(self.Q_rot_ref, Q_rot_2test))
 
     def test_apply_PAF_convention(self):
         # Test single PAF.
         PAF_ref = np.array([[1, -2, -3], [-4, 5, -6], [7, 8, 9]])
-        PAF_2test = rd.apply_PAF_convention(-PAF_ref)
+        PAF_2test = rd.apply_PCS_convention(-PAF_ref)
         self.assertTrue(np.allclose(PAF_ref, PAF_2test))
 
         # Test array of PAFs.
         PAFs_ref = np.array([PAF_ref])
-        PAFs_2test = rd.apply_PAF_convention(-PAFs_ref)
+        PAFs_2test = rd.apply_PCS_convention(-PAFs_ref)
         self.assertTrue(np.allclose(PAFs_ref, PAFs_2test))
 
     def test_instantaneous_tensor(self):
-        D_inst, PAF_inst = rd.instantaneous_tensors(self.t, self.Q_rot_ref)
+        D_inst, PAF_inst = rd.td_parameters(self.t, self.Q_rot_ref)
         self.assertTrue(np.allclose(D_inst[0], self.D_diag))
         self.assertTrue(np.allclose(PAF_inst[0], self.PAF))
 
     def test_convert2D_and_PAF(self):
-        D, PAF = rd.convert2D_and_PAF([1, 1, 0, 0, 0])
+        D, PAF = rd._to_D_and_PCS([1, 1, 0, 0, 0])
         self.assertEqual(D, [10, 10, 10])
         self.assertTrue(np.allclose(PAF, np.eye(3)))
         pass
