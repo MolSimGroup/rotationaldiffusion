@@ -47,13 +47,15 @@ def guess_init_params(lag_times, Q_data, model='anisotropic'):
     match model:
         case 'anisotropic':
             diff_params_init = diff_coeffs_init
-        case 'semi-isotropic':
+        case 'prolate':
+            diff_params_init = diff_coeffs_init[(0, 2),]
+        case 'oblate':
             diff_params_init = diff_coeffs_init[(0, 2),]
         case 'isotropic':
             diff_params_init = [np.mean(diff_coeffs_init)]
         case _:
-            raise KeyError(f"Model must be one of anisotropic, semi-isotropic,"
-                           f" or isotropic. Is: {model}.")
+            raise KeyError(f"Model must be one of anisotropic, prolate, "
+                           f"oblate, or isotropic. Is: {model}.")
     return _to_params(diff_params_init, PCS)
 
 
@@ -80,7 +82,7 @@ def local_optimization(lag_times, Q_data, weights=1, model='anisotropic',
     using a least-squares fitting procedure."""
     # Get initial parameters.
     if D_init:
-        _PCS = np.eye((3, 3)) if PCS_init is None else PCS_init
+        _PCS = np.eye(3) if PCS_init is None else PCS_init
         params_init = _to_params(D_init, _PCS)
     else:
         params_init = guess_init_params(lag_times, Q_data, model=model)
@@ -98,7 +100,7 @@ def local_optimization(lag_times, Q_data, weights=1, model='anisotropic',
     elif model == 'oblate':
         def oblate_constraint(params):
             D, _ = _to_D_and_PCS(params)
-            return D[0] - D[1]
+            return D[2] - D[1]
         constraints.append({'type': 'eq', 'fun': oblate_constraint})
 
     res = scipy.optimize.minimize(
