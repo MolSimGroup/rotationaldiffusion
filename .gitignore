@@ -1,6 +1,10 @@
-__pycache__
-OLD*
-*.egg-info
-.idea
-docs/build
+OLD
+tmp
 generated
+.idea
+__pycache__
+/build
+/docs/build
+*.egg-info
+*.bp
+.duecredit.p

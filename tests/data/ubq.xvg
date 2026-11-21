@@ -1,0 +1,43 @@
+# This file was created Thu Sep  5 23:10:38 2024
+# Created by:
+#                      :-) GROMACS - gmx rotmat, 2023.4 (-:
+# 
+# Executable:   /opt/software/gromacs/2023.4//bin/gmx
+# Data prefix:  /opt/software/gromacs/2023.4
+# Working dir:  /home/sholtbruegge/projects/rotdiff/rotationaldiffusion/tests/data
+# Command line:
+#   gmx rotmat -s ubq.tpr -f ubq.xtc -o ubq.xvg
+# gmx rotmat is part of G R O M A C S:
+#
+# GROwing Monsters And Cloning Shrimps
+#
+@    title "Fit matrix"
+@    xaxis  label "Time (ps)"
+@    yaxis  label ""
+@TYPE xy
+@ view 0.15, 0.15, 0.75, 0.85
+@ legend on
+@ legend box on
+@ legend loctype view
+@ legend 0.78, 0.8
+@ legend length 2
+@ s0 legend "xx"
+@ s1 legend "xy"
+@ s2 legend "xz"
+@ s3 legend "yx"
+@ s4 legend "yy"
+@ s5 legend "yz"
+@ s6 legend "zx"
+@ s7 legend "zy"
+@ s8 legend "zz"
+ 990000 -0.2387 -0.8998  0.3653  0.9711 -0.2233  0.0844  0.0056  0.3749  0.9270
+ 991000  0.9342 -0.0841 -0.3467 -0.2282 -0.8879 -0.3995 -0.2743  0.4523 -0.8486
+ 992000  0.8633  0.4643 -0.1974 -0.0525  0.4718  0.8801  0.5018 -0.7494  0.4317
+ 993000 -0.5781 -0.5606 -0.5927  0.3900  0.4482 -0.8043  0.7166 -0.6962 -0.0404
+ 994000 -0.4254  0.8620 -0.2754 -0.4653 -0.4694 -0.7503 -0.7761 -0.1910  0.6008 
+ 995000 -0.7282  0.5567  0.3995  0.4174 -0.1019  0.9029  0.5434  0.8243 -0.1581
+ 996000 -0.6465 -0.3166 -0.6940  0.6757  0.1845 -0.7136  0.3540 -0.9304  0.0947
+ 997000 -0.2375  0.4834  0.8425  0.8688  0.4936 -0.0382 -0.4343  0.7229 -0.5372
+ 998000 -0.5570 -0.7957  0.2375 -0.7244  0.6054  0.3295 -0.4060  0.0115 -0.9137
+ 999000  0.9246  0.3756 -0.0617  0.2805 -0.7820 -0.5565 -0.2573  0.4973 -0.8285
+  1e+06  1.0000  0.0000 -0.0000 -0.0000  1.0000 -0.0000  0.0000  0.0000  1.0000
