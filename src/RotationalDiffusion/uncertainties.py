@@ -3,7 +3,7 @@ from tqdm.asyncio import tqdm
 
 from .utils import arange_lag_times
 from .fitting import local_optimization
-# from pydiffusion import quaternionsimulation as qsim
+from pydiffusion import quaternionsimulation as qsim
 from .correlations import correlate
 
 
@@ -15,7 +15,7 @@ def get_error(value):
 
 def compute_uncertainty(D, nrepeats, sim_time_max, lag_time_step, lag_time_max,
                         sim_time_step=1e-10, model='anisotropic',
-                        lag_time_min=0):
+                        lag_time_min=0, nrepeats_outer=1000):
     if not qsim:
         print('Warning: Computing uncertainties of diffusion tensors requires'
               'the "pydiffusion" package, which is missing. Skipping ...')
@@ -28,7 +28,7 @@ def compute_uncertainty(D, nrepeats, sim_time_max, lag_time_step, lag_time_max,
     new_PAFs = [] # HERE
     all_stds_converged = False
     # while not all_stds_converged:
-    for i in tqdm(range(1000)):
+    for i in tqdm(range(nrepeats_outer)):
         while True:
             quat_trajs = np.array([qsim.run(D, niter, sim_time_step)
                                    for j in range(nrepeats)])
@@ -44,7 +44,7 @@ def compute_uncertainty(D, nrepeats, sim_time_max, lag_time_step, lag_time_max,
                 new_diff_coeffs.append(fit.D)
                 new_chi2.append(fit.fun)
                 angles = []
-                for axis in fit._PAF:
+                for axis in fit._PCS:
                     angles_tmp = []
                     for ref in np.eye(3):
                         cos = np.abs(np.dot(axis, ref))
@@ -52,7 +52,7 @@ def compute_uncertainty(D, nrepeats, sim_time_max, lag_time_step, lag_time_max,
                         angles_tmp.append(angle)
                     angles.append(angles_tmp)
                 new_PAF_angles.append(angles)
-                new_PAFs.append(fit._PAF) # HERE
+                new_PAFs.append(fit._PCS) # HERE
                 # i += 1
                 break
             print('FAILED')
