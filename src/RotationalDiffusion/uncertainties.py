@@ -3,7 +3,6 @@ from tqdm.asyncio import tqdm
 
 from .utils import arange_lag_times
 from .fitting import local_optimization
-from pydiffusion import quaternionsimulation as qsim
 from .correlations import correlate
 
 
@@ -16,10 +15,14 @@ def get_error(value):
 def compute_uncertainty(D, nrepeats, sim_time_max, lag_time_step, lag_time_max,
                         sim_time_step=1e-10, model='anisotropic',
                         lag_time_min=0, nrepeats_outer=1000):
-    if not qsim:
-        print('Warning: Computing uncertainties of diffusion tensors requires'
-              'the "pydiffusion" package, which is missing. Skipping ...')
-        return
+    try:
+        from pydiffusion import quaternionsimulation as qsim
+    except ImportError as err:
+        raise ImportError(
+            "compute_uncertainty() requires the 'pydiffusion' package from "
+            "https://github.com/bio-phys/pydiffusion . Install it with:\n"
+            "    pip install git+https://github.com/bio-phys/pydiffusion.git"
+        ) from err
 
     niter = int(sim_time_max/sim_time_step)
     stop = int(lag_time_max/sim_time_step/lag_time_step)

@@ -9,21 +9,19 @@ description = 'Analysis of rotational diffusion observed in simulations.'
 license = {file = 'LICENSE'}
 authors = [{name = 'Simon Holtbruegge', email = 'simon.holtbruegge@rub.de'}]
 maintainers = [{name = 'Simon Holtbruegge', email = 'simon.holtbruegge@rub.de'}]
-readme = 'README.md'
+readme = 'README.rst'
 requires-python = '>=3.10'
 dependencies = [
     'numpy>=1.23.2',
     'scipy>=1.7.0',
     'MDAnalysis>=2.8.0',
-    'matplotlib>=3.4.0',
     'tqdm>=4.60.0',
-    'dask'
 ]
 
 [project.optional-dependencies]
 test = ['pytest>=6.0', 'MDAnalysisTests']
-docs = ['sphinx>=4.0', 'numpydoc', 'nbsphinx', 'sphinx-book-theme',
-    'nbsphinx-link']
+docs = ['sphinx>=4.0', 'numpydoc', 'nbsphinx', 'sphinx-book-theme', 'nbsphinx-link']
+extra = ['dask', 'pydiffusion']
 
 #    "MDAnalysisTests>=2.0.0",
 #    "pytest-xdist>=2.5",

@@ -1,7 +1,4 @@
-from typing import List, Dict, Any, Union, Optional, Type
 import numpy as np
-import MDAnalysis as mda
-from MDAnalysis.analysis.base import AnalysisBase
 
 
 def arange_lag_times(Q, timestep):
