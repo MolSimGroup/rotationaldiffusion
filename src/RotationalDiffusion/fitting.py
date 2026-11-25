@@ -48,9 +48,10 @@ def guess_init_params(lag_times, Q_data, model='anisotropic'):
         case 'anisotropic':
             diff_params_init = diff_coeffs_init
         case 'prolate':
-            diff_params_init = diff_coeffs_init[(0, 2),]
+            diff_params_init = [np.mean(diff_coeffs_init[:2]), diff_coeffs_init[2]]
         case 'oblate':
-            diff_params_init = diff_coeffs_init[(0, 2),]
+            diff_params_init = [np.mean(diff_coeffs_init[1:]), diff_coeffs_init[0]]
+            PCS = PCS[(1, 2, 0),]
         case 'isotropic':
             diff_params_init = [np.mean(diff_coeffs_init)]
         case _:
@@ -92,16 +93,9 @@ def local_optimization(lag_times, Q_data, weights=1, model='anisotropic',
     constraints = [{'type': 'eq', 'fun': unit_quaternion_constraint}]
 
     if model == 'prolate':
-        def prolate_constraint(params):
-            D, _ = _to_D_and_PCS(params)
-            return D[1] - D[0]
-        constraints.append({'type': 'eq', 'fun': prolate_constraint})
-
+        constraints.append({'type': 'ineq', 'fun': lambda p: p[1] - p[0]})
     elif model == 'oblate':
-        def oblate_constraint(params):
-            D, _ = _to_D_and_PCS(params)
-            return D[2] - D[1]
-        constraints.append({'type': 'eq', 'fun': oblate_constraint})
+        constraints.append({'type': 'ineq', 'fun': lambda p: p[0] - p[1]})
 
     res = scipy.optimize.minimize(
         chi2_func,
